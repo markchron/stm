@@ -1,0 +1,4 @@
+build/ 	# ignore all files in build/ folder
+# ignore the *.o and *.a 
+*.[oa] 
+*~
