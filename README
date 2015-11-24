@@ -1,0 +1,13 @@
+CMake >=2.8.4 is required, otherwise, add
+set(CMAKE_LEGACY_CYGWIN_WIN32 0) 
+at the top of the top-level CMakeLists.txt. It means build on Cygwin without WIN32.
+
+cmake not find Visual Studio 10 Win64 in Generators list. Check this by cmd "cmake --help" 
+cygwin-cmake is compiled without the VS generators while the windows version has these. SET up environment variable by cmd
+
+$ export PATH=/cygdrive/c/Program\ Files\ \(x86\)/CMake/bin:${PATH}
+$ cd build
+$ cmake .. -DST_WITH_INTEL:BOOL=OFF -G "Visual Studio 10 Win64"
+Then open *.sln by visual studio 2010 - Build (F7)
+The compiled file locates at /build/bin/Debug/stm.exe
+Make test does not work now.

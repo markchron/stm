@@ -15,3 +15,11 @@ file(GLOB_RECURSE ST_SRC_LIST "./st*")
 
 message(STATUS "source files ST_SRC_LIST: ${ST_SRC_LIST}")
 add_executable(stm ${ST_SRC_LIST})
+# target_link_libraries(stm ${ST_LIBS_LIST})
+## create a folder "executables" and adds target
+## project (stm.vcproj) under it
+set_property(TARGET stm PROPERTY FOLDER "executables")
+
+## adds logic to INSTALL.vcproj to copy stm.exe to destination direcory
+install(TARGETS stm
+	RUNTIME DESTINATION ${PROJECT_BINARY_DIR}/bin)
