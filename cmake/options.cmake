@@ -9,8 +9,7 @@ if(ST_WITH_INTEL)
 			CMAKE_Fortran_COMPILER MATCHES CMAKE_Fortran_COMPILER-NOTFOUND OR
 			CMAKE_AR MATCHES CMAKE_AR-NOTFOUND OR
 			CMAKE_LINKER MATCHES CMAKE_LINKER-NOTFOUND)
-		message(WARNING "Intel ${ST_WITH_INTEL}, failed to find its compiler at default PATH." )
+		message(STATUS "Intel ${ST_WITH_INTEL}, failed to find its compiler at default PATH." )
 		#		message(STATUS	"Leave CMake to find avaliable compilers.")
-	endif()
-endif()
-
+	endif() # NOTFOUND
+endif() # with_Intel

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.4)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+#list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug
 		CACHE STRING
@@ -18,18 +19,31 @@ option(ST_WITH_INTEL "compile by Intel compiler." ON)
 option(ST_WITH_OPENMP "active OpenMP parallelization." ON)
 include(${CMAKE_SOURCE_DIR}/cmake/options.cmake)
 
+message(STATUS "CMake module	: ${CMAKE_MODULE_PATH}")
+message(STATUS "CMake prefix	: ${CMAKE_PREFIX_PATH}")
+message(STATUS "PATH 	: $ENV{PATH}")
+
 project(stm1023 Fortran)
 message(STATUS "Build type 		: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Install path 	: ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "CMake path		: ${CMAKE_MODULE_PATH}")
 #message(STATUS "Project source 	: ${CMAKE_SOURCE_DIR} ") # = ${PROJECT_SOURCE_DIR}
 #message(STATUS "Project build	: ${PROJECT_BINARY_DIR}")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+
 include(conflags)
+include(confprefix)
 
 enable_testing()
 
 add_subdirectory(src)
 add_subdirectory(test)
+
+#find_package(LATEX PATHS ${ST_LATEX_DIR})  ## latex.conf
+find_package(LATEX)
+if(LATEX_FOUND)
+	add_subdirectory(doc)
+else()
+	message(STATUS "MIKTEX_BINARY_PATH 	: ${MIKTEX_BINARY_PATH}")
+endif() #latex
