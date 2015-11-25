@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.4)
 #list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug
 		CACHE STRING
@@ -21,7 +22,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/options.cmake)
 
 message(STATUS "CMake module	: ${CMAKE_MODULE_PATH}")
 message(STATUS "CMake prefix	: ${CMAKE_PREFIX_PATH}")
-message(STATUS "PATH 	: $ENV{PATH}")
+#message(STATUS "PATH 	: $ENV{PATH}")
+#enable_language(Fortran)
 
 project(stm1023 Fortran)
 message(STATUS "Build type 		: ${CMAKE_BUILD_TYPE}")
@@ -42,8 +44,8 @@ add_subdirectory(test)
 
 #find_package(LATEX PATHS ${ST_LATEX_DIR})  ## latex.conf
 find_package(LATEX)
-if(LATEX_FOUND)
+if(UNIX AND LATEX_FOUND)
 	add_subdirectory(doc)
-else()
+elseif(NOT LATEX_FOUND)
 	message(STATUS "MIKTEX_BINARY_PATH 	: ${MIKTEX_BINARY_PATH}")
 endif() #latex

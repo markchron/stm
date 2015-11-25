@@ -1,3 +1,4 @@
+message(STATUS "SYSTEM: ${CMAKE_SYSTEM} UNIX: ${UNIX} WIN32: ${WIN32} CYGWIN: ${CYGWIN} MINGW: ${MINGW} MSYS: ${MSYS} MSVC: ${MSVC}")
 if(ST_WITH_INTEL)
 	find_program(CMAKE_C_COMPILER NAMES icc)
 	find_program(CMAKE_CXX_COMPILER NAMES icpc)
@@ -13,3 +14,4 @@ if(ST_WITH_INTEL)
 		#		message(STATUS	"Leave CMake to find avaliable compilers.")
 	endif() # NOTFOUND
 endif() # with_Intel
+
