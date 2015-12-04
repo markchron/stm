@@ -2,4 +2,6 @@
 /build
 # ignore the *.o and *.a 
 *.[oa] 
+# ignore the bak files
 *~
+*.bak
