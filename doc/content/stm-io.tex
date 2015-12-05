@@ -1,0 +1,26 @@
+\chapter{io}
+\section{subroutine structure}
+The dataset is read in by two cycles. First, pre-read in the \emph{size-related} information. There include
+\begin{itemize}
+\item Geometric related (Nx,Ny,Nz) - formated related (Nine-point stencil or Five-point stencil)
+\item Components and Phase related size - (component number, phase number, table size (viscosity table lines number, relative permeability lines number,
+any table related input information needs the parameters)
+\item well related info. (well numbers, well perforated layers number)
+\item data (time) related info.  (time steps number) - dynamic related info needs
+\end{itemize}
+The pre-read information may also include permeabilities and well perforation information, which are important for transmissibilities and well index calculations. 
+\subsection{Protocol}
+After get the dataset name, the pre-read the size info, domain decomposition, then read in the total dataset. 
+
+The data input process looks through the data on a natural ordering. 
+\paragraph{pro:} Distribute the dataset (blocks(distributed) \& global control(replicated) \& global matrix structure(master) ). Global matrix structure depends on new block ordering techniques(D2, D4, red-black ...). The local matrix structure depends on the local block ordering. 
+\subsection{Porotol1}
+After get the dataset name, then pre-read the size info, and later read-in the whole information?
+\paragraph{pro:} Look through the data file and check its validity
+\paragraph{con:} The master processor may read in the whole information
+\section{data structure}
+The data type, 	integer (unsigned, signed - \emph{Fortran95 does not support unsigned integer}, integer);
+				double precision (real(STDD) = real(8))
+There are normally 3 types of data :
+									scalars, vectors, mtx (mtx2d, mtxcsr)
+
