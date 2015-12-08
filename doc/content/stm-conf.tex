@@ -1,0 +1,72 @@
+\chapter{Configure STM with CMake}
+\section{Windows}
+\subsection{CMake}
+CMake is a tool that makes cross-platform building simple. On several systems it will probably be already installed. If it is not, please use the following instructions to install it. If CMake does not exist on the system, and there are no pre-compiled binaries, use the instructions below on how to build it. Use the most recent source or binary version of CMake from the CMake web site.
+\begin{enumerate}\item Download the installer \url{https://cmake.org/download/} \item Follow the installation instructions \end{enumerate}
+ if you are not administrator, \begin{enumerate} \item download Windows ZIP(cmake-3.4.1-win32-x86.zip), \item Uncompress into some directory \item Optional: create a shortcut on the desktop.\end{enumerate}
+ \subsection{MPI}
+ \url{http://nick-goodman.blogspot.ca/2012/02/using-mpich-from-ms-visual-studio-2010.html}
+ \begin{enumerate}
+\item Download 32-bit or 64-bit MPICH installer (if you have Visual Studio 32-bit, you MUST use the 32-bit MPICH) from \url{http://www.mcs.anl.gov/research/projects/mpich2/downloads/index.php?s=downloads}
+\item  Open the start menu - Accessories - Command Prompt
+\item Right-click on the Command Prompt (cmd.exe) icon and click "Run as admistrator"
+\item Change directories to the location of the .msi file you just downloaded
+\item Execute the .msi file by entering it's name on the command prompt.
+\item You may be prompted with a security messgae from windows, continue (install path C:\Program Files (x86)\Microsoft SDKs)
+\item Make sure to remember the "authentication passphrase for smpd".  You must have this to run a program with mpich.
+\end{enumerate} 
+ NOTE: If you have problems with installing MPICH2 or running it, you may need to lower the "User Account Control" settings on Windows 7.  You can do so by doing the following:
+\begin{itemize}\item  Open the Start Menu
+\item Type "User Account Control"
+\item Choose "Change User Account Control Settings" from the search results.
+\item You can lower the slider to the bottom to reduce the security level of Windows 7.
+\item Install MPICH
+\item Reset the security level back to what it was before. \end{itemize}
+
+\subsection{Configure with CMake}
+\begin{enumerate}
+\item Use CMakeSetup from the CMake install location.
+\item Make sure to select the appropriate source and the build directory.
+\item Also, make sure to pick the appropriate generator (on Visual Studio 6, pick the Visual Studio 6 generator).
+Some CMake versions will ask you to select the generator the first time you press Configure instead of having a drop-down menu in the main dialog.
+Build with \emph{visual studio 10 2010}. \end{enumerate}
+{\bf About CMakeSetup (Windows CMake GUI)}
+Iterative process. \begin{itemize}\item  Select values, press the Configure button.
+\item Set the settings, run configure, set the settings, run configure, etc.\end{itemize}
+
+Repeat until all values are set and the OK button becomes available.
+Some variables (advanced variables) are not visible right away.
+To see advanced varables, toggle to advanced mode ("Show Advanced Values" toggle).
+To set the value of a variable, click on that value. \begin{itemize}
+\item If it is boolean (ON/OFF), a drop-down menu will appear for changing the value.
+\item If it is file or directory, an ellipsis button will appear ("...") on the far right of the entry. Clicking this button will bring up the file or directory selection dialog.
+\item If it is a string, it will become an editable string. \end{itemize}
+
+\paragraph{Can not find MPI_Fortran_INCLUDE_PATH and MPI_Fortran_LIBRARIES} 
+\paragraph{Sol.} Choose Release version. And set up these two variables in 'Advanced' section, 
+MPI_Fortran_INCLUDE_PATH = C:\Program Files (x86)\Microsoft SDKs\MPI\Include;C:\Program Files (x86)\Microsoft SDKs\MPI\Include\x86 
+MPI_Fortran_LIBRARIES = C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpi.lib;C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpifec.lib;C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpifes.lib;C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpifmc.lib;C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpifms.lib
+
+\subsection{Build by VS2010}
+\begin{enumerate}
+\item CMake will now create Visual Studio project files{\bf *.sln}.
+\item You should now be able to open the ParaView project (or workspace) file. Build the project (F7) or ALL_BUILD target. \end{enumerate}
+Find the executable file in ~/build/bin/Debug/*.exe
+
+
+NOTE: reference on \url{http://www.paraview.org/Wiki/ParaView:Build_And_Install}
+
+\subsection{Error with running exe file}
+\paragraph{ Entry Point Not Found }
+\paragraph{Sol.} This issue may occur if you replaced the Msvcrt.dll file with a third-party version that does not contain the _resetstkoflw (recovery from stack overflow) function.
+ 
+Run the SFC (System File Checker) scan on the computer to fix the system file errors on the computer.
+To run SFC scan, follow the steps:
+Open an elevated command prompt. To do this,\begin{enumerate} \item Click Start ,
+\item click All Programs ,
+\item click Accessories , right-click Command Prompt ,
+\item And then click Run as administrator.
+\item If you are prompted for an administrator password or for a confirmation, type the password, or click Allow or Continue.
+\item At the prompt, type sfc /scannow and hit enter. Once the scan is complete, restart the computer for the changes to take effect
+\end{enumerate}                                                                                                                 
+Link you may refer to is: \url{http://support.microsoft.com/kb/929833}

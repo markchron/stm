@@ -37,6 +37,12 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
 include(conflags)
 include(confprefix)
+if(ST_WITH_MPI) 	
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_Fortran_INCLUDE_PATH})
+	link_directories(${MPI_Fortran_LIBRARIES})
+	set(ST_LIBS_LIST ${MPI_Fortran_LIBRARIES})
+endif()
 
 enable_testing()
 
