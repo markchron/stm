@@ -14,8 +14,9 @@ file(GLOB_RECURSE ST_SRC_LIST "./st*")
 ## MUST RUN cmake again after adding or removing files
 
 message(STATUS "source files ST_SRC_LIST: ${ST_SRC_LIST}")
+message(STATUS "libraries  ST_LIBS_LIST : ${ST_LIBS_LIST}")
 add_executable(stm ${ST_SRC_LIST})
-# target_link_libraries(stm ${ST_LIBS_LIST})
+target_link_libraries(stm ${ST_LIBS_LIST})
 ## create a folder "executables" and adds target
 ## project (stm.vcproj) under it
 set_property(TARGET stm PROPERTY FOLDER "executables")

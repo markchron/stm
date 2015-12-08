@@ -30,7 +30,8 @@ C:\Users\hzhong.UC> cd Documents\workspace\stm1023\build
 		  > cmake --help
 		  > which ifort
 /cygdrive/c/Program Files (x86)/Intel/Composer XE 2011 SP1/bin/intel64/ifort
-		  > cmake .. -DST_WITHT_INTEL:BOOL=OFF -G "Visual Studio 10 Win64"
+		  > cmake .. -DST_WITH_INTEL:BOOL=OFF -G "Visual Studio 10 2010"
+##		  > cmake .. -DST_WITH_INTEL:BOOL=OFF -G "Visual Studio 10 Win64"
 But ${CMAKE_Fortran_COMPILER_ID} is empty!
 Then open *.sln by visual studio 2010 - Build (F7)
 The compiled file locates at /build/bin/Debug/stm.exe

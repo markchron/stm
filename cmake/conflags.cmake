@@ -50,5 +50,12 @@ if(CMAKE_Fortran_COMPILER_WORKS)
 	endif()
 	message(STATUS "compiler 		: ${CMAKE_Fortran_COMPILER}")
 	message(STATUS "Fortran flags 	: ${CMAKE_Fortran_FLAGS}")
+	
+	if(ST_WITH_MPI) 	
+		find_package(MPI REQUIRED)
+		include_directories(${MPI_Fortran_INCLUDE_PATH})
+		link_directories(${MPI_Fortran_LIBRARIES})
+		set(ST_LIBS_LIST ${MPI_Fortran_LIBRARIES})
+	endif()
 endif()
 

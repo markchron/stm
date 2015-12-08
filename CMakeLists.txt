@@ -17,6 +17,7 @@ option(CMAKE_VERBOSE_MAKEFILE "make verbose off | make VERBOSE=1" OFF)
 ## switch on|off Intel
 ## cmake -DST_WITH_INTEL:BOOL=ON path/to/CMakeLists.txt
 option(ST_WITH_INTEL "compile by Intel compiler." ON)
+option(ST_WITH_MPI "active OPENMPI parallelization." ON)
 option(ST_WITH_OPENMP "active OpenMP parallelization." ON)
 include(${CMAKE_SOURCE_DIR}/cmake/options.cmake)
 

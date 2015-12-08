@@ -5,19 +5,30 @@
 	  ! 1, integer
 	  ! 2, float
 	  ! 3, scientific float
-	  character(5), dimension(3) 	:: valfmt
+	  character(5), dimension(3) 		:: valfmt
 	  ! output format of a line of numbers
 	  character(BUF_LEN), dimension(3)  :: linefmt
 	  ! number of values per line
 	  integer, dimension(3)				:: novapl
 	  contains
 ! PURPOSE:
+! create the .out file
+	  subroutine dprt_create
+      if(nprocs > 1 ) then
+	    write(stofnm, '(A,"_",I4.4,A)') stifnm(1 : stiftrunc), rank, ".out"
+      else
+	    write(stofnm, '(A,A)') stifnm(1 : stiftrunc), ".out"
+	  endif
+
+      OPEN(UNIT = FUNIT_OUT, FILE=TRIM(stofnm), STATUS = 'REPLACE', FORM='FORMATTED', IOSTAT=stERRs(5))
+	  end subroutine dprt_create
+! PURPOSE:
 ! simply print out the array data  >> stdout
       subroutine dprt_datpol
 	  character(BUF_LEN) 					:: lfmt
       call setupfmt
 	  lfmt = '(A,":",1x' // trim(valfmt(1)) //')'
-	  write(*, lfmt) "Active cells no.", Nlacs
+	  write(FUNIT_OUT, lfmt) "Active cells no.", Nlacs
 	  call dprt_arr(ictind, Nlncs, "cell type index:")
 	  call dprt_arr(dcdx, Ngcll, "cell steps along X:")
 	  call dprt_arr(dcdy, Ngcll, "cell steps along Y:")
@@ -56,7 +67,7 @@
 	  integer :: i, ni, npl
 	  character(BUF_LEN) 					:: lfmt
 	  lfmt = '(A,2x,"(size:"' // trim(valfmt(1)) // '" )")'
-	  write(*,lfmt) amsg, n
+	  write(FUNIT_OUT,lfmt) amsg, n
 	  
 	  select type (arr) 
 	  type is (real(STDD))
@@ -69,19 +80,19 @@
 	    endif	
 		ni = n / npl
 		do i= 1, ni
-          write(*, lfmt) arr((i-1)*npl+1 : i*npl)
+          write(FUNIT_OUT, lfmt) arr((i-1)*npl+1 : i*npl)
         enddo
      	i = n - ni * npl 
-        if(i>0) write(*, lfmt) arr(ni*npl+1 : n)
+        if(i>0) write(FUNIT_OUT, lfmt) arr(ni*npl+1 : n)
       type is(integer)
 		 npl = novapl(1)
 		 lfmt = linefmt(1)
 		 ni = n / npl
 		 do i = 1, ni
-           write(*, lfmt) arr((i-1)*npl+1 : i* npl)
+           write(FUNIT_OUT, lfmt) arr((i-1)*npl+1 : i* npl)
          enddo
          i = n - ni * npl
-         if ( i > 0 ) write(*, lfmt) arr(ni * npl + 1 : n)
+         if ( i > 0 ) write(FUNIT_OUT, lfmt) arr(ni * npl + 1 : n)
       end select
       end subroutine dprt_arr
       end module stmoutput

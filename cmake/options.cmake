@@ -14,4 +14,3 @@ if(ST_WITH_INTEL)
 		#		message(STATUS	"Leave CMake to find avaliable compilers.")
 	endif() # NOTFOUND
 endif() # with_Intel
-

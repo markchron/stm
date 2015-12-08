@@ -37,7 +37,7 @@
       endif
       allocate(arr(n),STAT=err)
       end subroutine palloc_d
-      
+     
       subroutine setptr_i(pool, n, off, ptr, np)
       implicit none
       integer, intent(in) :: n

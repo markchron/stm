@@ -1,8 +1,14 @@
       module stmdatpol
       use stmheader
-	  character(BUF_LEN) 							:: stifnm
+	  integer 										:: nprocs, rank
+	  integer, parameter							:: MASTER = 0
+	  integer 										:: stiflen, stiftrunc
+	  character(BUF_LEN) 							:: stifnm ! input file name
+	  character(BUF_LEN) 							:: stofnm ! input file name
+	  integer, parameter 							:: FUNIT_OUT = 9
 	  character(BUF_LEN), dimension(10) 			:: titls_
-	  integer, dimension(100) 						:: stErrs
+	  
+	  integer, dimension(0 : 100) 					:: stErrs
       ! integer control scalar variables 
 	  integer, parameter 							:: NIcsv = 200
       integer, dimension(NIcsv), target         	:: stIcsv 
@@ -11,7 +17,7 @@
       real(STDD), dimension(NDcsv), target      	:: stDcsv
       ! pointers
 	  integer, pointer :: Nxd, Nyd, Nzd, Ngcll, Nwidx, Ngidx, Ngacl, Ncidx, Npidx, Neqn, Npeqn, Nxyplane, &
-			  Nlyidx, fnstec, metric, Ngedges
+			  Nlyidx, fnstec, metric, Ngedges, Nevents
 	  integer, pointer :: Nlncs, Nlacs, Nlnbls, Nlnwls, Nlnlys, Nlneds
 	  
 	  ! stIgvs(szIdp), integer data pool; so far, only stIgvs(1:ofstIdp) was
@@ -53,6 +59,7 @@
 	  						! default, 5-points 
 	  metric => stIcsv(16)  ! input units system
 	  						! default, field units
+      Nevents => stIcsv(17)  ! total events no.
 
 	  Nlncs =>  stIcsv(7) 	! local grid cells number
 	  Nlacs => 	stIcsv(8) 	! local active cells number
@@ -68,7 +75,7 @@
 	  subroutine datpol_init_vect
 	  ! updates the connections number based on nfstec, Nxd, Nyd, Nzd	  
 	  call numofconnects 
-      ! properties on local grid cells			  
+      ! properties on global grid cells			  
 	  szIdp = Ngcll *  2 + 5 * Nlyidx + Ngcll+1 + Ngedges
 
 	  call palloc_i(stIgvs, szIdp, stErrs(1))
@@ -80,6 +87,7 @@
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ialy, Nlyidx)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, iwly, Nlyidx)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ivadj, Ngcll + 1)
+
 	  call setptr_i(stIgvs, szIdp, ofstIdp, iadjncy, Ngedges)
 
 	  szDdp = 7 * Ngcll + Nxyplane &
@@ -95,24 +103,47 @@
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpermj, Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpermk, Ngcll)
 
-	  call setptr_d(stDgvs, szDdp, ofstDp, detrans, Ngedges)
-	  call setptr_d(stDgvs, szDdp, ofstDp, dethermtrs, Ngedges)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dwlltrs, Nlyidx)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dwllthermtrs, Nlyidx)
 
+	  call setptr_d(stDgvs, szDdp, ofstDp, detrans, Ngedges)
+	  call setptr_d(stDgvs, szDdp, ofstDp, dethermtrs, Ngedges)
 	  end subroutine datpol_init_vect
-
+! PURPOSE:
+! based on the informations to updates the memory index
 	  subroutine datpol_update_index
-      integer :: i, n
-	  n = 0
-	  do i=1, Nlncs
-        if(ictind(i) > 0 ) n = n + 1
-      enddo
-
-	  n = count( ictind > 0 )
-	  Nlacs = n
+	  ! the active grid cells number
+	  Ngacl = count( ictind > 0 )
 	  end subroutine datpol_update_index
+! PURPOSE:
+! estimate the connections number of Cartisian grid, based on 
+! Nxd, Nyd, Nzd, fnstec
+! ictind(Ngcll) [Grid cell type index with active grid cells info.] may reduce
+! the connection lists
       subroutine numofconnects
       Ngedges = 5 * Ngcll
       end subroutine numofconnects
+! PURPOSE:
+! de-associate the pointers
+! release the memory
+      subroutine datpol_free
+      NULLIFY(ictind, icsecd)
+	  NULLIFY(ixly, iyly, izly, ialy, iwly, ivadj, iadjncy)
+	  NULLIFY(dcdx, dcdy, dcdz, dchtop, dcpor, dcpermi, dcpermj, dcpermk)
+	  NULLIFY(detrans, dethermtrs, dwlltrs, dwllthermtrs)
+	  deallocate(stDgvs, STAT = stErrs(11))
+	  deallocate(stIgvs, STAT = stErrs(12))
+	  end subroutine datpol_free
+! PURPOSE
+! check the stErrs info.
+	  subroutine errmsg
+      integer :: i
+	  i = sum(stErrs)
+	  if(i /= 0 ) then 
+		  write(*, '(TR10, "There are errors in stErrs." )')
+	  else
+		  write(*, '("STM")')
+	  endif
+	  end subroutine errmsg
+       
       end module stmdatpol
