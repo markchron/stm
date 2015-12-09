@@ -69,11 +69,11 @@
 	  Nlneds => stIcsv(14)  ! local connections (edges) no.
 	  
 	  ofstIdp = 0; ofstDp = 0
-	  nfstec = 0; metric = 0
+	  fnstec = 0; metric = 0
 	  end subroutine datpol_init_scalar
 ! after get the problem size (npt_init), initialize the array|vector pointers
 	  subroutine datpol_init_vect
-	  ! updates the connections number based on nfstec, Nxd, Nyd, Nzd	  
+	  ! updates the connections number based on fnstec, Nxd, Nyd, Nzd	  
 	  call numofconnects 
       ! properties on global grid cells			  
 	  szIdp = Ngcll *  2 + 5 * Nlyidx + Ngcll+1 + Ngedges
