@@ -36,3 +36,10 @@ But ${CMAKE_Fortran_COMPILER_ID} is empty!
 Then open *.sln by visual studio 2010 - Build (F7)
 The compiled file locates at /build/bin/Debug/stm.exe
 Make test does not work now.
+
+## Fortran feature class(*) is not compatible with gfortran 4.4.7. This compiling error can be avoid with cmake cmd:
+$ CC=/global/software/gcc/gcc-4.8.4/bin/gcc FC=/global/software/gcc/gcc-4.8.4/bin/gfortran cmake .. -DST_WITH_INTEL:BOOL=OFF 
+## in parallel.westgrid.ca, but the linked mpi libraries, are compatible with gcc-4.4.7 and icc.
+## get warning: 
+## libgfortran.so.1 may conflicit with libgfortran.so.3
+## Similar openmpi is required to keep consistency (compiled with corresponding compiler)
