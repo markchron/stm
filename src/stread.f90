@@ -12,7 +12,7 @@
       Nzd = 4
 	  Nwidx = 3
 	  Nlyidx = 3 * Nzd  ! defined after go through the datset, here, 3 vertical wells
-	  nfstec = 0 		! pre-read:  discretized format, 5 or 9 points
+	  fnstec = 0 		! pre-read:  discretized format, 5 or 9 points
 	  metric = 0 		! field units
 
 	  Ncidx = 2

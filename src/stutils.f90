@@ -8,6 +8,7 @@
       contains
 	  subroutine st_init_memo
 	  include 'mpif.h'
+      integer :: mprov
 	  nprocs = 1
 	  rank = 0
 	  call MPI_INIT_THREAD(MPI_THREAD_FUNNELED, mprov, stErrs(6))

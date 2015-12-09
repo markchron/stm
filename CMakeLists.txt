@@ -26,7 +26,7 @@ message(STATUS "CMake prefix	: ${CMAKE_PREFIX_PATH}")
 #message(STATUS "PATH 	: $ENV{PATH}")
 #enable_language(Fortran)
 
-project(stm1023 Fortran)
+project(stm1023 Fortran C)
 message(STATUS "Build type 		: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Install path 	: ${CMAKE_INSTALL_PREFIX}")
 #message(STATUS "Project source 	: ${CMAKE_SOURCE_DIR} ") # = ${PROJECT_SOURCE_DIR}
