@@ -22,7 +22,11 @@ CMake is a tool that makes cross-platform building simple. On several systems it
 \item You can lower the slider to the bottom to reduce the security level of Windows 7.
 \item Install MPICH
 \item Reset the security level back to what it was before. \end{itemize}
-
+\subsection{CMake-Config}
+\url{https://cmake.org/Wiki/CMake:How_To_Find_Libraries}
+\paragraph{Cmake module path} \begin{lstlisting}[language=sh]
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+\end{lstlisting}
 \subsection{Configure with CMake}
 \begin{enumerate}
 \item Use CMakeSetup from the CMake install location.
