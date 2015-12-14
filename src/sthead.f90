@@ -104,4 +104,72 @@
       offB = offB + np
       ptr  => pool(offA : offB : 1)
       end subroutine set_ptr_i
+! PURPOSE:
+! convert CSR into CSC format B=A, A in CSR and B in CSC matrix
+! 
+! input:
+! integer nr          -- number of rows in 2D density format
+! integer nc          -- number of columns in density format
+! integer ap(nr+1)    -- row  pointer in CSR
+! integer aj(nnz(A))  -- column indices
+! real av(nnz(A))     -- non zero values
+!
+! output:
+! integer bp(nc+1)    -- column pointer
+! integer bi(nnz(A))  -- row indices
+! real bv(nnz(A))     -- non zero values
+!
+! note
+! bp, bi, bx must be preallocated
+      subroutine csr2csc(nr, nc,nnz, ap, aj, av, bp, bi, bv)
+      implicit none
+      integer, intent(in) :: nr
+      integer, intent(in) :: nc
+      integer, intent(in) :: nnz
+      integer, dimension(nr+1), intent(in) :: ap
+      integer, dimension(nnz), intent(in) :: aj
+      real(kind=STDD), dimension(nnz), intent(in), optional :: av
+      integer, dimension(nc+1), intent(out) :: bp
+      integer, dimension(nnz), intent(out) :: bi
+      real(kind=STDD), dimension(nnz), intent(out), optional:: bv
+      integer :: cumsum, temp, last
+      integer :: l, r, c, dest
+! compute number of non-zero entries per column of density matrix
+      bp = 0
+!$OMP PARALLEL DO PRIVATE(l) reduction(+:bp)
+      do l=1, nnz
+        bp(aj(l)) = bp(aj(l)) + 1
+      enddo
+!$OMP END PARALLEL DO
+
+! cummulate sum the number of non-zero entries per column to get bp()
+      cumsum = 0
+      do c=1, nc
+        temp = bp(c)
+        bp(c) = cumsum
+        cumsum = cumsum + temp
+      enddo
+      bp(nc+1) = nnz !== cumsum
+
+      do r=1, nr
+        do l=ap(r)+1, ap(r+1)
+          c = aj(l)
+          dest = bp(c)
+
+          bi(dest+1) = r
+          if(PRESENT(av).and.PRESENT(bv)) then
+            bv(dest+1) = av(l)
+          endif
+          
+          bp(c) = bp(c) + 1
+        enddo ! l
+      enddo! r
+! re-correct bp
+      last = 0
+      do c=1, nc + 1
+        temp = bp(c)
+        bp(c) = last
+        last = temp
+      enddo
+      end subroutine csr2csc
       end module stmheader

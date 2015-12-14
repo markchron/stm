@@ -121,7 +121,8 @@
 ! ictind(Ngcll) [Grid cell type index with active grid cells info.] may reduce
 ! the connection lists
       subroutine numofconnects
-      Ngedges = 5 * Ngcll
+      use stmgeomet, only : no_totl_connections
+      call no_totl_connections( nxd, nyd, nzd, fnstec, Ngedges)
       end subroutine numofconnects
 ! PURPOSE:
 ! de-associate the pointers

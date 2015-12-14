@@ -15,6 +15,16 @@ file(GLOB_RECURSE ST_SRC_LIST "./st*")
 
 message(STATUS "source files ST_SRC_LIST: ${ST_SRC_LIST}")
 message(STATUS "libraries  ST_LIBS_LIST : ${ST_LIBS_LIST}")
+
+## on wellbore
+set(WLL_SRCS 
+	${PROJECT_SOURCE_DIR}/src/sthead.f90
+	${PROJECT_SOURCE_DIR}/src/stwell.f90
+	${PROJECT_SOURCE_DIR}/src/testwell.f90
+	)
+add_executable(TestWll ${WLL_SRCS})
+target_link_libraries(TestWll ${ST_LIBS_LIST})
+
 add_executable(stm ${ST_SRC_LIST})
 target_link_libraries(stm ${ST_LIBS_LIST})
 ## create a folder "executables" and adds target
