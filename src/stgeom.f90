@@ -7,6 +7,7 @@
       integer, intent(in)   :: nx, ny, nz
       integer, intent(in)   :: forn ! five or nine stencil
       integer, intent(out)  :: num ! total connection numbers
+
       integer, dimension(nz*ny*nx) :: adjclls
       if( forn == 1) then
       else
@@ -14,6 +15,27 @@
       endif
       num = sum(adjclls)
       end subroutine no_totl_connections
+! calculate the index into adjcny(nadys) that is the begining of the
+! adjacency list of vertices
+! input:
+! adjclls(nvtxs) : adjacency blocks number of each block
+! output:
+! nadys, total edges|connections no. count repeated since adjclls(nvtxs)
+! stores for both points
+! iadj(nvtxs+1): the beginning index of csr adjacncy list
+      subroutine nadjcny2iadj(nvtxs, adjclls, nadys, iadj)
+      integer, intent(in)                       :: nvtxs
+      integer, dimension(nvtxs), intent(in)     :: adjclls
+      integer, intent(out)                      :: nadys
+      integer, dimension(nvtxs+1), intent(out)  :: iadj
+
+      integer :: i
+      iadj(1) = 1
+      do i = 1, nvtxs
+        iadj(i+1) = iadj(i) + adjclls(i)
+      enddo
+      nadys = iadj(nvtxs+1)
+      end subroutine nadjcny2iadj
 ! count the adjacent grid-cells no. for each cell at five-stencial
 ! input:
 ! nx, the grid cells no. along I/x direction

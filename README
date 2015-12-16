@@ -43,3 +43,6 @@ $ CC=/global/software/gcc/gcc-4.8.4/bin/gcc FC=/global/software/gcc/gcc-4.8.4/bi
 ## get warning: 
 ## libgfortran.so.1 may conflicit with libgfortran.so.3
 ## Similar openmpi is required to keep consistency (compiled with corresponding compiler)
+
+## METIS
+$cmake .. -DST_METIS_DIR=~/lib/metis-intel

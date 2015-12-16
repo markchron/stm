@@ -6,6 +6,7 @@
 	  contains
 ! pre-read the data size | structure related info.
 ! predefine all these  values by revise the program
+! define the global variables
       subroutine npt_init
       Nxd = 9
 	  Nyd = 9

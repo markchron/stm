@@ -43,9 +43,19 @@ if(ST_WITH_MPI)
 	link_directories(${MPI_Fortran_LIBRARIES})
 	set(ST_LIBS_LIST ${MPI_Fortran_LIBRARIES})
 endif()
+## metis library
+find_package(METIS)
+if(METIS_FOUND)
+	include_directories(${METIS_INCLUDE_DIR})
+	list(APPEND ST_LIBS_LIST ${METIS_LIBRARIES})
+else()
+	list(APPEND ST_LIBS_LIST metis)
+endif()
 
 enable_testing()
-
+#set(METIS_LIB)
+add_subdirectory(lib)
+#message(STATUS "METIS_LIB ${METIS_LIB}")
 add_subdirectory(src)
 add_subdirectory(test)
 
