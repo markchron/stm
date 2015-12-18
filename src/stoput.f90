@@ -21,7 +21,8 @@
 	  endif
 
       OPEN(UNIT = FUNIT_OUT, FILE=TRIM(stofnm), STATUS = 'REPLACE', FORM='FORMATTED', IOSTAT=stERRs(5))
-	  end subroutine dprt_create
+	  
+      end subroutine dprt_create
 ! PURPOSE:
 ! simply print out the array data  >> stdout
       subroutine dprt_datpol
@@ -29,7 +30,7 @@
       call setupfmt
 	  lfmt = '(A,":",1x' // trim(valfmt(1)) //')'
 	  write(FUNIT_OUT, lfmt) "Active cells no.", Nlacs
-	  call dprt_arr(ictind, Nlncs, "cell type index:")
+	  call dprt_arr(ictind, Ngcll, "cell type index:")
 	  call dprt_arr(dcdx, Ngcll, "cell steps along X:")
 	  call dprt_arr(dcdy, Ngcll, "cell steps along Y:")
 	  call dprt_arr(dcdz, Ngcll, "cell steps along Z:")
@@ -54,9 +55,18 @@
       character(*), intent(out) 		:: lfmt
 	  integer, intent(in) 				:: n
 	  character(*), intent(in) 			:: vfmt
-	  write(lfmt, '( "(", I3, "(",A,",1x))")') n, trim(vfmt)
+	  write(lfmt, '( "(", I3, "(",A,",1x))" )') n, trim(vfmt)
 	  end subroutine dynlfmt
- 
+      subroutine dynlfmtspcs(lfmt, n, vfmt, sps)
+      character(*), intent(out) 		:: lfmt
+	  integer, intent(in) 				:: n
+	  character(*), intent(in) 			:: vfmt
+      integer, intent(in)               :: sps
+      character(20) ::nchar, schar
+      write(nchar, '(I20)') n
+      write(schar, '(I20)') sps
+      lfmt ="(T"//trim(ADJUSTL(schar))//","//trim(ADJUSTL(nchar))//"("//trim(vfmt)//",1x))"
+      end subroutine dynlfmtspcs
 ! print out array line by line
 	  subroutine dprt_arr(arr,n,amsg, sci)
       character(*), intent(in) 				:: amsg
@@ -84,15 +94,57 @@
         enddo
      	i = n - ni * npl 
         if(i>0) write(FUNIT_OUT, lfmt) arr(ni*npl+1 : n)
-      type is(integer)
+      type is (integer)
 		 npl = novapl(1)
 		 lfmt = linefmt(1)
 		 ni = n / npl
 		 do i = 1, ni
-           write(FUNIT_OUT, lfmt) arr((i-1)*npl+1 : i* npl)
+           write(FUNIT_OUT, lfmt) arr( ((i-1)*npl+1) : (i* npl))
          enddo
          i = n - ni * npl
-         if ( i > 0 ) write(FUNIT_OUT, lfmt) arr(ni * npl + 1 : n)
+         if ( i > 0 ) write(FUNIT_OUT, lfmt) arr(ni*npl + 1 : n)
       end select
       end subroutine dprt_arr
+! print out a CSR format matrix
+! input:
+! sci, scientific print
+      subroutine dprt_csr(n,nz,ai,aj,a, amsg, sci)
+      use stmdatpol, only : maxcol_csr
+      character(*), intent(in)          :: amsg
+      integer, intent(in)               :: n, nz
+      integer, dimension(n+1), intent(in)   :: ai
+      integer, dimension(nz), intent(in)    :: aj
+      class(*), dimension(nz), intent(in)   :: a
+      integer, optional, intent(in)         :: sci
+      ! numbers per line
+      integer        ::i, npl 
+      character(BUF_LEN)        :: tfmt, lfmt
+      tfmt = '(A,2x,"(row:", I9,2x,"nzero:", I20, ")")'
+      write(FUNIT_OUT, tfmt) amsg, n, nz
+      npl = maxcol_csr(n,ai)
+      call dynlfmt(lfmt, npl+1, "2xI9")
+      tfmt = repeat(' ', BUF_LEN)
+      select type (a)
+      type is (real(STDD))
+        if(PRESENT(sci)) then
+            call dynlfmtspcs(tfmt, npl, "ES11.3", 16)
+            do i = 1, n
+            write(FUNIT_OUT, lfmt) i, aj(ai(i) : ai(i+1) -1 )
+            write(FUNIT_OUT, tfmt) a( ai(i) : ai(i+1) -1 )
+            enddo
+        else
+            call dynlfmtspcs(tfmt, npl, "G11.3", 16)
+            do i = 1, n
+            write(FUNIT_OUT, lfmt) i, aj(ai(i) : ai(i+1) -1 )
+            write(FUNIT_OUT, tfmt) a( ai(i) : ai(i+1) -1 )
+            enddo
+         endif
+        type is(integer)
+            call dynlfmtspcs(tfmt, npl, "I11  ", 16)
+            do i = 1, n
+            write(FUNIT_OUT, lfmt) i, aj(ai(i) : ai(i+1) -1 )
+            write(FUNIT_OUT, tfmt) a( ai(i) : ai(i+1) -1 )
+            enddo
+        end select
+      end subroutine dprt_csr
       end module stmoutput

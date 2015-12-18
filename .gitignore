@@ -5,3 +5,8 @@
 # ignore the bak files
 *~
 *.bak
+/src/*.swp
+
+/src/*.out
+/src/cscope.*
+/src/tags

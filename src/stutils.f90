@@ -34,6 +34,8 @@
       call npt_set_properties
 
 	  call datpol_update_index
+      call dprt_csr(Ngcll, Ngedges, ivadj, iadjncy, detrans, "transmissibility", 1)
+
 	  end subroutine st_reservoir_init
 ! PURPOSE:
 ! terminate the parallel program

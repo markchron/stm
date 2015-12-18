@@ -45,19 +45,37 @@
       integer, intent(inout) :: off
       integer, intent(in) :: np
       integer, dimension(:), pointer :: ptr
+      call assoptr_i(pool,n,off,ptr,np) 
+      off  = off + np
+      end subroutine setptr_i
+      subroutine assoptr_i(pool, n, off, ptr, np)
+      implicit none
+      integer, intent(in) :: n
+      integer, dimension(n), target, intent(inout) :: pool
+      integer, intent(in) :: off
+      integer, intent(in) :: np
+      integer, dimension(:), pointer :: ptr
       integer       :: offB 
       integer       :: offA
-    
       offA = off + 1
       offB = off + np
       ptr  => pool(offA : offB : 1)
-      off  = offB
-      end subroutine setptr_i
+      end subroutine assoptr_i
       subroutine setptr_d(pool, n, off, ptr, np)
       implicit none
       integer, intent(in) :: n
       real(STDD), dimension(n), target, intent(inout) :: pool
       integer, intent(inout) :: off
+      integer, intent(in) :: np
+      real(STDD), dimension(:), pointer :: ptr
+      call assoptr_d(pool, n, off, ptr, np)
+      off  = off + np
+      end subroutine setptr_d
+      subroutine assoptr_d(pool, n, off, ptr, np)
+      implicit none
+      integer, intent(in) :: n
+      real(STDD), dimension(n), target, intent(inout) :: pool
+      integer, intent(in) :: off
       integer, intent(in) :: np
       real(STDD), dimension(:), pointer :: ptr
       integer       :: offB 
@@ -66,8 +84,7 @@
       offA = off + 1
       offB = off + np
       ptr  => pool(offA : offB : 1)
-      off  = offB
-      end subroutine setptr_d      
+      end subroutine assoptr_d
 
       subroutine set_ptr_d(pool, n, off, ptr, np, RESET)
       integer, intent(in) :: n
