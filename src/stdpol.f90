@@ -25,7 +25,7 @@
 	  integer 										:: szIdp, ofstIdp
       integer, dimension(:), allocatable, target    :: stIgvs
 	  integer, dimension(:), pointer 				:: ictind, icsecd, &
-	  ixly, iyly, izly, ialy, iwly, ivadj, iadjncy
+	  ixly, iyly, izly, ialy, iwly, ivadj, icdist, iadjncy
 	  ! ictind(Ngcll), integer, grid cell type index
 	  ! 						normall type - all included in calculation
 	  ! 						in-active 
@@ -79,7 +79,7 @@
 	  ! call numofconnects 
       mxEdges = estimate_no_connects(fnstec, Ngcll)
       ! properties on global grid cells			  
-	  szIdp = Ngcll *  2 + 5 * Nlyidx + Ngcll+1 + mxEdges
+	  szIdp = Ngcll*3 + 5 * Nlyidx + Ngcll+1 + mxEdges
 
 	  call palloc_i(stIgvs, szIdp, stErrs(1))
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ictind, Ngcll)
@@ -90,6 +90,7 @@
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ialy, Nlyidx)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, iwly, Nlyidx)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ivadj, Ngcll + 1)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, icdist, Ngcll)
 
 	  !call setptr_i(stIgvs, szIdp, ofstIdp, iadjncy, Ngedges)
 
@@ -163,6 +164,16 @@
       call setptr_d(stDgvs, szDdp, ofstDp, detrans, Ngedges)
       call set_adjncy_trans(Nxd,Nyd,Nzd,fnstec, Ngedges, ivadj, perm3d, area3d, ds3d, iadjncy, detrans)
       end subroutine set_graph_connect
+! PURPOSE:
+! distribute the grid cells into each processor
+      subroutine set_dist_clls
+      use stmapimts, only : metis_api
+      if (nprocs == 1) then
+          icdist = 1
+          return
+      endif
+      call metis_api(Ngcll, Ngedges, ivadj, iadjncy, detrans, nprocs, icdist)
+      end subroutine set_dist_clls
 ! PURPOSE:
 ! de-associate the pointers
 ! release the memory

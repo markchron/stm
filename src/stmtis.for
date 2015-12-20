@@ -18,19 +18,19 @@
       ! metis options
       integer, dimension(0:39)  :: opts
       ! vwgt(NULL), weight of the vertex
-      integer, pointer          :: vwgt
+!      integer, pointer          :: vwgt
       ! vsize(NULL), the amount of data that needs to be sent due to the
       ! ith vertex.  - communication cost
       ! The amount of data that needs to be sent (communication cost,
-      ! vsize) is different from the weight of the vertex (computational 
+      ! vsize) is different from the weight of the vertex(computational 
       ! cost, vwgt).
-      integer, pointer          :: vsize
+!      integer, pointer          :: vsize
       ! adjwgt(NULL), weight of the edges
       ! contains 2*m entries (m=edges no.) The weight of edge geocadj(j)
       ! is stored at location adjwgt(j)
       !integer, pointer          :: adjwgt
-      real(8), pointer,dimension(:)          :: tpwgts
-      real(8), pointer          :: ubvec
+      !real(8), pointer          :: tpwgts
+!      real(8), pointer          :: ubvec
       integer                   :: objval
 
       ! variables pass by main program
@@ -47,7 +47,8 @@
 ! partitioning the graph
 ! ndomain : domains number
 ! b_dist(nvtxs) 
-      subroutine metis_api(nvtxs, nadys, iadj, adjncy, adjwgt, ndomain, b_dist)
+      subroutine metis_api(nvtxs, nadys, iadj, adjncy, adjwgt, ndomain,
+     &b_dist)
       use stmheader, only : STDD
       integer, intent(in)                               :: nvtxs
       integer, intent(in)                               :: nadys
@@ -58,47 +59,35 @@
       integer, intent(in)                               :: ndomain
       integer, dimension(nvtxs), intent(out)            :: b_dist
 
-      call metis_init
+      integer, pointer :: vwgt=>null(), vsize=>null()
+      real(8), pointer :: tpwgts=>null(), ubvec=>null()
+!      integer, pointer          :: vwgt, vsize, vadjwgt
+!      real(8), pointer          :: tpwgts, ubvec
+!      nullify(vwgt, vsize,vadjwgt)
+!      nullify(tpwgts, ubvec)
       
+      call metis_init
+
       ! iadj-adjncy, the adjacency structure (CSR) of the graph
       ! multilevel recursive bisection 
-!      call set_metis_tpwgts(ndomain)
       if(metis_rb .eq. 1) then
         call set_metis_options_rb
-!                                                                vwgt    vsize                   tpwgts   ubvec
-        call METIS_PartGraphRecursive(nvtxs, ncon, iadj, adjncy, null(),&
-        null(), adjwgt,ndomain, null(), null(), opts, objval, b_dist)
-!        call METIS_PartGraphRecursive(nvtxs, ncon, iadj, adjncy,null(),&
-!        null(),adjwgt,ndomain, tpwgts, null(), opts, objval, b_dist)
+!        call METIS_PartGraphRecursive(nvtxs, ncon, iadj, adjncy, 
+!     &null(), null(), adjwgt,ndomain, null(), null(), 
+!     &opts, objval, b_dist)
+!      vwgt    vsize                   tpwgts   ubvec
+        call METIS_PartGraphRecursive(nvtxs, ncon, iadj, adjncy,vwgt,
+     &vsize,adjwgt,ndomain, tpwgts, ubvec, opts, objval, b_dist)
       else
       ! multilevel k-way partition
         call set_metis_options_kway
-!                                                            vwgt    vsize                   tpwgts   ubvec
-        call METIS_PartGraphKway(nvtxs, ncon, iadj, adjncy, null(), &
-        null(), adjwgt,ndomain, null(), null(), opts, objval, b_dist)
-!        call METIS_PartGraphKway(nvtxs, ncon, iadj, adjncy, null(), &
-!        null(),adjwgt, ndomain, tpwgts, null(), opts, objval, b_dist)
+!        call METIS_PartGraphKway(nvtxs, ncon, iadj, adjncy, 
+!    &null(), null(), adjwgt,ndomain, null(), null(), opts, objval, b_dist)
+!     vwgt    vsize                   tpwgts   ubvec
+        call METIS_PartGraphKway(nvtxs, ncon, iadj, adjncy, vwgt,  
+     &vsize,adjwgt, ndomain, tpwgts, ubvec, opts, objval, b_dist)
       endif
       end subroutine metis_api
-! PURPOSE:
-! METIS parameters - fixed values
-      subroutine set_metis_tpwgts(ndomain)
-      integer, intent(in)               :: ndomain
-      integer :: i, j
-!      nullify(vwgt, vsize,vadjwgt)
-!      nullify(tpwgts, ubvec)
-      ! tpwgts(ndomain*ncon), the desired weight for each parition and
-      ! constraint. The target partition weight for the ith partition
-      ! and jth constraint is specified at tpwgts(i*ncon+j) (the
-      ! numbering for both partitions and constraints starts from 0)
-      ! For each constraint, sum of the \sum_i tpwgts(i*ncon+j) = 1.0
-      allocate(tpwgts(0: ndomain*ncon-1))
-      do i=0, ndomain - 1
-        do j = 0, ncon - 1
-        tpwgts(i*ncon + j) = 1/ndomain
-        enddo
-       enddo
-       end subroutine set_metis_tpwgts
 ! METIS options
       ! options : recursive bisection
       subroutine set_metis_options_rb
@@ -186,8 +175,8 @@
       ! to minimize the maximum degree of the subdomain graph, i.e., the
       ! graph in which each partition is a node, and edges connect
       ! subdomains with a shared interface
-      opts(10) = 1      ! 0, (default) does not explicitly minimize the maximum
-                        ! connectivity
+      opts(10) = 1      ! 0, (default) does not explicitly minimize 
+                        ! the maximum connectivity
                         ! 1, explicitly minimize the maximum
                         ! connectivity
       ! 11, METIS_OPTION_CONTIG, produce partitions that are contiguous.
@@ -221,9 +210,9 @@
       ! 14, METIS_OPTION_PFACTOR, the miminum degree of the vertices
       ! that will be ordered last.
       opts(14) = 0      ! default, no vertices are removed
-      ! 15, METIS_OPTION_NSEPS, the number of different separators that it
-      ! will compute at each level of nested dissection. The final
-      ! separator that is used is the smallest one
+      ! 15, METIS_OPTION_NSEPS, the number of different separators 
+      ! that it will compute at each level of nested dissection. 
+      ! The final separator that is used is the smallest one
       opts(15) = 1      ! default
       end subroutine set_metis_options_kway
       end module stmapimts

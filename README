@@ -46,3 +46,28 @@ $ CC=/global/software/gcc/gcc-4.8.4/bin/gcc FC=/global/software/gcc/gcc-4.8.4/bi
 
 ## METIS
 $cmake .. -DST_METIS_DIR=~/lib/metis-intel
+
+## Run-Time Errors: Intel-Fortran run-time error messages do not usually indicate the eexact source location causing the error. The following compiler options are related to handling errors and exceptions
+forrtl: severe (408): fort: (7): Attempt to use pointer VWGT when it is not associated with a target
+-check [keyword] (Linux*) 
+/check[:keyword] (Windows*)
+ generates extra code to catch certain conditions at run time. 
+ keyword=bounds; Debugger will catch and stop at array or character string bounds errors. An error is reported if the expression is outside the dimension of the array or the length of the string. 
+ keyword=uninit; generates code for dynamic checks of uninitialized variables. If a varaible is read before written, a rn-time error routine will be called
+ keyword=noformat; keyword=nooutput_conversion; reduce the severity level of the associated run-time error to allow program continuation
+ keyword=pointers; generates code to test for disassociated pointer and unallocatable arrays
+
+ traceback
+ generates extra information in the object file to provide source file traceback information when a severe error occurs at run time. This simplifies the task of locating the cause of severe run-time erros. 
+
+ fpe
+ controls the handling of floating-point arithmetic exceptions (IEEE arithmetic) at run time.
+ -fpe[:]3 ; all floating-point exceptions are disabled, allowing IEEE exceptional values and program continuation. 
+ -fpe[:]0 ; in contrast, stops execution when an exceptional value (such as NaN) is generated, when floating overflow or dividied by zero occur, or when attempting to use a denormalized number, when usually allows you to localize the cuase of the error. It also forces underflow to zero
+
+ warn | nowarn
+ controls compile-time warning messages, which, in some circumstances, can help determine the cause of a run-time error
+
+ -fexceptions (Linux*)
+ enables C++ exception handling table generation, preventing Fortran routines in mixed-language applications from interfering with exception handling between C++ routines
+ On windows*, the compilation Diagnostics Options in the IDE control compile-time diagnostic messages, which, in some circumstances can help determine the cause of a run-time error.

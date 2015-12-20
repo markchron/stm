@@ -38,6 +38,11 @@
 
 	  end subroutine st_reservoir_init
 ! PURPOSE:
+! distribute the problem between processors by distribute grid cells
+      subroutine st_dist
+      call set_dist_clls
+      end subroutine st_dist
+! PURPOSE:
 ! terminate the parallel program
 ! close the opening files
 ! release the dynamic memory

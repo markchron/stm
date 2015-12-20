@@ -31,6 +31,7 @@
 	  lfmt = '(A,":",1x' // trim(valfmt(1)) //')'
 	  write(FUNIT_OUT, lfmt) "Active cells no.", Nlacs
 	  call dprt_arr(ictind, Ngcll, "cell type index:")
+      call dprt_arr(icdist, Ngcll, "cell dist domain:")
 	  call dprt_arr(dcdx, Ngcll, "cell steps along X:")
 	  call dprt_arr(dcdy, Ngcll, "cell steps along Y:")
 	  call dprt_arr(dcdz, Ngcll, "cell steps along Z:")
