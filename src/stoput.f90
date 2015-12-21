@@ -50,6 +50,9 @@
       subroutine dprt_datpol
 	  character(BUF_LEN) 					:: lfmt
       call setupfmt
+      call dprt_csr(Ngcll, Ngedges, ivadj, iadjncy, detrans, "transmissibility", 1)
+      call dprt_csr(Nwidx, Nlyid, ilyadj, icidly, dlywitrs, "well index", 1)
+
 	  lfmt = '(A,":",1x' // trim(valfmt(1)) //')'
 	  write(FUNIT_OUT, lfmt) "Active cells no.", Nlacs
 	  call dprt_arr(ictind(1:Ngcll), Ngcll, "cell type index:")

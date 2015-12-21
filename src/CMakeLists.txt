@@ -19,6 +19,7 @@ message(STATUS "libraries  ST_LIBS_LIST : ${ST_LIBS_LIST}")
 ## on wellbore
 set(WLL_SRCS 
 	${PROJECT_SOURCE_DIR}/src/sthead.f90
+	${PROJECT_SOURCE_DIR}/src/stgeom.f90
 	${PROJECT_SOURCE_DIR}/src/stwell.f90
 	${PROJECT_SOURCE_DIR}/src/testwell.f90
 	)

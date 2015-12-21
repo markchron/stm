@@ -18,8 +18,10 @@
       integer, parameter 							:: NDcsv = 100
       real(STDD), dimension(NDcsv), target      	:: stDcsv
       ! pointers
-	  integer, pointer :: Nxd, Nyd, Nzd, Ngcll, Nwidx, Ngidx, Ngacl, Ncidx, Npidx, Neqn, Npeqn, Nxyplane, &
-			  Nlyidx, fnstec, metric, Ngedges, Nevents
+	  integer, pointer :: Nxd, Nyd, Nzd, Ngcll, Nwidx, Ngidx, Ngacl, & 
+      Ncidx, Npidx, Neqn, Npeqn, Nxyplane, &
+      Nlyid, Ngedges, Nevents, &
+      fnstec, metric
 	  integer, pointer :: Nlncs, Nlacs, Nlnbls, Nlnwls, Nlnlys, Nlneds
 	  
 	  ! stIgvs(szIdp), integer data pool; so far, only stIgvs(1:ofstIdp) was
@@ -27,19 +29,37 @@
 	  integer 										:: szIdp, ofstIdp
       integer, dimension(:), allocatable, target    :: stIgvs
 	  integer, dimension(:), pointer 				:: ictind, icsecd, &
-	  ixly, iyly, izly, ialy, iwly, ivadj, icdist, iadjncy
+	  ixly, iyly, izly, ialy, icidly, iwdir, ilyadj,  &
+      ivadj, icdist, iadjncy
 	  ! ictind(Ngcll), integer, grid cell type index
 	  ! 						normall type - all included in calculation
 	  ! 						in-active 
 	  ! 						pinch-out
+      ! perforated layers info
+      ! ixly(Nlyid), iyly(Nlyid), izly(Nlyid):UID of each perforated layer
+      ! ialy(Nlyid) : connection of the layer: flow-from | flow-to
+      ! icidly(Nlyid) : natural order of the perforated layer
+      ! iwly(Nlyid) :
+      ! iwdir(Nwidx) : well direction
+      ! ilyadj(Nwidx+1) : perforated layers index of each well into perforated 
+      ! layers info
+      ! 
 	  ! stDgvs(szDdp), double data pool; so far, only stDgvs(1:ofstDp) was
 	  ! associated with pointers
 	  integer 										:: szDdp, ofstDp
       real(STDD), dimension(:), allocatable, target :: stDgvs
 	  real(STDD), dimension(:), pointer 			:: dcdx, dcdy, dcdz, ds3d, &
       dcareai, dcareaj, dcareak, area3d, dcpor, dcpermi, dcpermj, dcpermk, perm3d, &
-      detrans, dethermtrs, dwlltrs, dwllthermtrs, &
+      detrans, dethermtrs, & 
+      dwllrad, dwllgeof, dwllfrac, dlylenfr, dlyskin, dlywitrs, dlywitherm, &
       dchtop
+      ! dwllrad(Nwidx) : well radius
+      ! dwllgeof(Nwidx) : geofactor
+      ! dwllfrac(Nwidx) : well fraction 
+      ! dlylenfr(Nlyid) : perforated length fraction
+      ! dlyskin(Nlyid) : skin
+      ! dlywitrs(Nlyid) : well index - flow
+      ! dlywitherm    :               - heat conduction
 	  contains
 ! initialize the scalar pointers to the global datapool.
 	  subroutine datpol_init_scalar
@@ -56,7 +76,7 @@
 	  Npeqn => 	stIcsv(10)  ! primary eqns no.
 	  Neqn 	=> 	stIcsv(11)  ! Ncidx + 1 + Npidx + 1 + Nequil
 	  Nxyplane => stIcsv(12) ! Nxd * Nyd
-	  Nlyidx => stIcsv(13) 	! total perforated layers no.
+	  Nlyid => stIcsv(13) 	! total perforated layers no.
 	  Ngedges => stIcsv(14)  ! total connections (edges) no.
 	  fnstec => stIcsv(15)  ! nine or five stencial
 	  						! default, 5-points 
@@ -81,23 +101,25 @@
 	  ! call numofconnects 
       mxEdges = estimate_no_connects(fnstec, Ngcll)
       ! properties on global grid cells			  
-	  szIdp = Ngcll*3 + 5 * Nlyidx + Ngcll+1 + mxEdges
+	  szIdp = Ngcll*3 + 5 * Nlyid + Ngcll+1 + Nwidx+1 + mxEdges
 
 	  call palloc_i(stIgvs, szIdp, stErrs(1))
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ictind, Ngcll)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, icsecd, Ngcll)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, ixly, Nlyidx)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, iyly, Nlyidx)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, izly, Nlyidx)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, ialy, Nlyidx)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, iwly, Nlyidx)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, ixly, Nlyid)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, iyly, Nlyid)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, izly, Nlyid)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, ialy, Nlyid)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, icidly, Nlyid)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ivadj, Ngcll + 1)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, icdist, Ngcll)
 
+	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdir, Nwidx)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, ilyadj, Nwidx+1)
 	  !call setptr_i(stIgvs, szIdp, ofstIdp, iadjncy, Ngedges)
 
 	  szDdp = 10 * Ngcll + Nxyplane &
-			  + 2 * mxEdges + 2 * Nlyidx 
+			  + 2 * mxEdges + 2 * Nlyid 
 	  call palloc_d(stDgvs, szDdp, stErrs(2))
       call assoptr_d(stDgvs, szDdp, ofstDp, ds3d, 3*Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcdx, Ngcll)
@@ -115,9 +137,15 @@
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpermi, Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpermj, Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpermk, Ngcll)
+      
+      call setptr_d(stDgvs, szDdp, ofstDp, dwllrad, Nwidx)
+      call setptr_d(stDgvs, szDdp, ofstDp, dwllgeof, Nwidx)
+      call setptr_d(stDgvs, szDdp, ofstDp, dwllfrac, Nwidx)
 
-	  call setptr_d(stDgvs, szDdp, ofstDp, dwlltrs, Nlyidx)
-	  call setptr_d(stDgvs, szDdp, ofstDp, dwllthermtrs, Nlyidx)
+      call setptr_d(stDgvs, szDdp, ofstDp, dlylenfr, Nlyid)
+      call setptr_d(stDgvs, szDdp, ofstDp, dlyskin, Nlyid)
+	  call setptr_d(stDgvs, szDdp, ofstDp, dlywitrs, Nlyid)
+	  call setptr_d(stDgvs, szDdp, ofstDp, dlywitherm, Nlyid)
 
 	  !call setptr_d(stDgvs, szDdp, ofstDp, detrans, Ngedges)
 	  !call setptr_d(stDgvs, szDdp, ofstDp, dethermtrs, Ngedges)
@@ -127,17 +155,30 @@
 	  subroutine datpol_update_index
 	  ! the active grid cells number
 	  Ngacl = count( ictind > 0 )
-      call set_cell_areas
+
+      call set_geometry
+      call set_wellbore
       call set_graph_connect
 	  end subroutine datpol_update_index
 ! PURPOSE:
-! calculate the area of each cell perpendicular three directions
-      subroutine set_cell_areas
+! calculate the geometry informations:
+!      * area of each cell perpendicular three directions
+      subroutine set_geometry
       use stmgeomet, only : set_area
       call set_area(dcdy, dcdz, dcareai)
       call set_area(dcdx, dcdz, dcareaj)
       call set_area(dcdx, dcdy, dcareak)
-      end subroutine set_cell_areas
+      end subroutine set_geometry
+! PURPOSE:
+! calculate the wellbore informations:
+!   * uid (natural order) of perforated layer
+      subroutine set_wellbore
+      use stmwllbor, only : set_wll_cid, set_wlls_wi
+      call set_wll_cid(Nlyid, ixly, iyly, izly, icidly, Nxd, Nyd) 
+      call set_wlls_wi(Nwidx, Nlyid, ilyadj, icidly, iwdir, dwllrad, &
+      dwllgeof, dwllfrac, dlyskin, dlylenfr, Ngcll, perm3d, ds3d,    &
+      dlywitrs)
+      end subroutine set_wellbore
 ! PURPOSE:
 ! estimate the connections number of Cartisian grid, based on 
 ! Nxd, Nyd, Nzd, fnstec
@@ -181,9 +222,11 @@
 ! release the memory
       subroutine datpol_free
       NULLIFY(ictind, icsecd)
-	  NULLIFY(ixly, iyly, izly, ialy, iwly, ivadj, iadjncy)
+	  NULLIFY(ixly, iyly, izly, ialy, icidly, iwdir, ilyadj, ivadj, iadjncy)
 	  NULLIFY(dcdx, dcdy, dcdz, dchtop, dcpor, dcpermi, dcpermj, dcpermk)
-	  NULLIFY(detrans, dethermtrs, dwlltrs, dwllthermtrs)
+	  NULLIFY(detrans, dethermtrs)
+      NULLIFY(dwllrad, dwllgeof, dwllfrac)
+      NULLIFY(dlylenfr, dlyskin, dlywitrs, dlywitherm)
 	  deallocate(stDgvs, STAT = stErrs(11))
 	  deallocate(stIgvs, STAT = stErrs(12))
 	  end subroutine datpol_free

@@ -348,4 +348,43 @@
       integer, intent(out)      :: gid
       gid = (uk-1) * ny * nx + (uj-1) * nx + ui
       end subroutine U2GID_ 
+! PURPOSE:
+! circulate the direction
+! input: 
+! i 
+! output: 
+! j, k
+! <i,j,k> = (0, 1, 2),
+!           (1, 2, 0)
+!           (2, 0, 1)
+      subroutine get_perpend_dirs(i,j,k)
+      integer, intent(in)           :: i
+      integer, intent(out)          :: j,k
+      select case (i)
+      case (0)
+          j = 1
+          k = 2
+      case (1)
+          j = 2
+          k = 0
+      case (2)
+          j = 0
+          k = 1
+      case default
+          j = -1
+          k = -1
+      end select
+      end subroutine get_perpend_dirs
+! PURPOSE:
+! extract parts of the properties from an array
+! mid(m) : positions in arr
+      subroutine get_geo_prop_d(n, arr, m, mid, extract)
+      integer, intent(in)                   :: n
+      real(STDD), dimension(n), intent(in)  :: arr
+      integer, intent(in)                   :: m
+      integer, dimension(m), intent(in)     :: mid
+      real(STDD), dimension(m), intent(out) :: extract
+      extract = arr(mid) 
+      end subroutine get_geo_prop_d
+
       end module stmgeomet

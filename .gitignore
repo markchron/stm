@@ -6,6 +6,7 @@
 *~
 *.bak
 /src/*.swp
+*.nfs*
 
 /src/*.out
 /src/cscope.*

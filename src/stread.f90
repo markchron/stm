@@ -12,7 +12,7 @@
 	  Nyd = 9
       Nzd = 4
 	  Nwidx = 3
-	  Nlyidx = 3 * Nzd  ! defined after go through the datset, here, 3 vertical wells
+	  NLYID = 9  ! defined after go through the datset, here, 3 vertical wells
 	  fnstec = 0 		! pre-read:  discretized format, 5 or 9 points
 	  metric = 0 		! field units
 
@@ -50,6 +50,38 @@
 			  (1000., i=1, Nxyplane),  (2000., i=1, Nxyplane)  /) ! Darcy, KVAR
 	  dcpermj = dcpermi
 	  dcpermk = dcpermi * 0.5
+
+      !  UID   ff    skin  status       connection    
+      ! 1 1 4   1.     0.     open        flow-from  'surface'
+      !
+      !  UID   ff    skin  status       connection    
+      ! 9 1 1   1.     0.     open        flow-to  'surface'
+      ! 9 1 2   1.     0.     open        flow-to  1
+      ! 9 1 3   1.     0.     open        flow-to  2      
+      ! 9 1 4   1.     0.     open        flow-to  3
+      !
+      !  UID   ff    skin  status       connection    
+      ! 5 5 1   1.     0.     open        flow-to  'surface'
+      ! 5 5 2   1.     0.     open        flow-to  1
+      ! 5 5 3   1.     0.     open        flow-to  2      
+      ! 5 5 4   1.     0.     open        flow-to  3
+      ixly = (/ 1, (9, i=1, 4), (5, i=1, 4) /)
+      iyly = (/ 1, (1, i=1, 4), (5, i=1, 4) /)
+      izly = (/ 4, (i, i=1, 4), (i, i=1, 4) /)
+      ialy = (/ 0, (i, i=0, 3), (i, i=0, 3) /)
+      ! The perforation info of (widx)-well is stored in ixly(iyly,izly,...)
+      ! starting at index ilyadj(widx) and ending at (but not including) index
+      ! ilyadj(widx+1) (i.e. ixly(ilyadj(widx) : ilyadj(widx+1)-1) store all the
+      ! perforated UI index of well 'widx'
+      ilyadj = (/ 1, 2, 6, 10 /) 
+      iwdir = (/ (2, i=1, Nwidx) /) ! vertical well
+      dwllrad = (/ (0.3, i=1, Nwidx) /) ! ft
+      dwllgeof = (/ (0.249d0, i=1, Nwidx) /)
+      dwllfrac = (/ (1.d0, i=1, Nwidx) /)
+
+      dlylenfr = (/ (1.d0, i=1, NLYID) /)
+      dlyskin = (/ (0.d0, i=1, NLYID) /)
+      
 	  end subroutine npt_set_properties
 	  
 ! -------------------------------------------------------------------------
