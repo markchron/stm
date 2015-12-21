@@ -16,11 +16,13 @@
 		  call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, stErrs(7))
 		  call MPI_COMM_RANK(MPI_COMM_WORLD, rank, stErrs(8))
 	  endif
+      call omp_system_optimal_num_threads
 	  ! input file name
 	  call get_ifile
 	  if(nprocs > 1 ) call pmpi_fname(stifnm, stiflen, stiftrunc)
-	  ! create the *.out files 
+	  ! create the *.out files & *.log
 	  call dprt_create
+
 	  ! check input file exists or not 
 	  call serial_verify_ifile
 
@@ -47,12 +49,23 @@
 ! close the opening files
 ! release the dynamic memory
 	  subroutine st_release_memo
+      use stmoutput, only : dprt_errmsg
       include 'mpif.h'
 	  close(I_UNIT_5, IOSTAT = stErrs(9))
 	  close(FUNIT_OUT, IOSTAT = stErrs(10))
 
-	  if(rank == MASTER) call errmsg
+	  if(rank == MASTER) call dprt_errmsg
 	  call datpol_free
 	  call MPI_FINALIZE(stErrs(6)) 
       end subroutine st_release_memo
+!----------------------------------------------------------------------      
+! OPENMP
+!----------------------------------------------------------------------
+! PURPOSE:
+! set up multi-threads number
+      subroutine omp_system_optimal_num_threads
+      use omp_lib
+      nthread = omp_get_max_threads()
+      call OMP_SET_NUM_THREADS(nthread)
+      end subroutine omp_system_optimal_num_threads
 	  end module stmutils

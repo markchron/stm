@@ -47,8 +47,7 @@ $ CC=/global/software/gcc/gcc-4.8.4/bin/gcc FC=/global/software/gcc/gcc-4.8.4/bi
 ## METIS
 $cmake .. -DST_METIS_DIR=~/lib/metis-intel
 
-## Run-Time Errors: Intel-Fortran run-time error messages do not usually indicate the eexact source location causing the error. The following compiler options are related to handling errors and exceptions
-forrtl: severe (408): fort: (7): Attempt to use pointer VWGT when it is not associated with a target
+## Run-Time Errors: Intel-Fortran run-time error messages do not usually indicate the exact source location causing the error. The following compiler options are related to handling errors and exceptions
 -check [keyword] (Linux*) 
 /check[:keyword] (Windows*)
  generates extra code to catch certain conditions at run time. 
@@ -56,6 +55,9 @@ forrtl: severe (408): fort: (7): Attempt to use pointer VWGT when it is not asso
  keyword=uninit; generates code for dynamic checks of uninitialized variables. If a varaible is read before written, a rn-time error routine will be called
  keyword=noformat; keyword=nooutput_conversion; reduce the severity level of the associated run-time error to allow program continuation
  keyword=pointers; generates code to test for disassociated pointer and unallocatable arrays
+	" forrtl: severe (408): fort: (7): Attempt to use pointer VWGT when it is not associated with a target "
+ keyword=arg_temp_creation: performance degradation. Eliminate these copies by making sure you don't pass non-contigous arrays to routines that don't accept arrays by descriptor
+    " forrtl: warning (402): fort: (1): In call to I/O Write routine, an array temporary was created for argument #1 "
 
  traceback
  generates extra information in the object file to provide source file traceback information when a severe error occurs at run time. This simplifies the task of locating the cause of severe run-time erros. 

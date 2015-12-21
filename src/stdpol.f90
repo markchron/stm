@@ -2,10 +2,12 @@
       use stmheader
 	  integer 										:: nprocs, rank
 	  integer, parameter							:: MASTER = 0
+      integer                                       :: nthread
 	  integer 										:: stiflen, stiftrunc
 	  character(BUF_LEN) 							:: stifnm ! input file name
 	  character(BUF_LEN) 							:: stofnm ! input file name
 	  integer, parameter 							:: FUNIT_OUT = 9
+	  integer                                       :: FUNIT_LOG ! = 6?
 	  character(BUF_LEN), dimension(10) 			:: titls_
 	  
 	  integer, dimension(0 : 100) 					:: stErrs
@@ -185,17 +187,6 @@
 	  deallocate(stDgvs, STAT = stErrs(11))
 	  deallocate(stIgvs, STAT = stErrs(12))
 	  end subroutine datpol_free
-! PURPOSE
-! check the stErrs info.
-	  subroutine errmsg
-      integer :: i
-	  i = sum(stErrs)
-	  if(i /= 0 ) then 
-		  write(*, '(TR10, "There are errors in stErrs." )')
-	  else
-		  write(*, '("STM")')
-	  endif
-	  end subroutine errmsg
 ! count the maximum columns no. for CSR matrix
       pure integer function maxcol_csr(n, ai)
       integer, intent(in)           :: n
