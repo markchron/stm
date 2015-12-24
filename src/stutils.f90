@@ -41,7 +41,7 @@
 ! PURPOSE:
 ! distribute the problem between processors by distribute grid cells
       subroutine st_dist
-      call set_dist_clls
+      call set_partition_dist
       end subroutine st_dist
 ! PURPOSE:
 ! terminate the parallel program

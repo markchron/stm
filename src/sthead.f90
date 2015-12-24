@@ -6,6 +6,7 @@
       real(kind=STDD), parameter :: ST_TOL_EPSILON = 1.e-13
       real(kind=STDD), parameter :: ST_FPE_TOL = 1.e-13
       real(kind=STDD), parameter :: ST_FPE_INF = 9.e30
+      integer, parameter         :: MASTER = 0
       
        ! associate array pointer to a target data pool
       interface set_ptr
@@ -140,18 +141,18 @@
 ! bp, bi, bx must be preallocated
       subroutine csr2csc(nr, nc,nnz, ap, aj, av, bp, bi, bv)
       implicit none
-      integer, intent(in) :: nr
-      integer, intent(in) :: nc
-      integer, intent(in) :: nnz
-      integer, dimension(nr+1), intent(in) :: ap
-      integer, dimension(nnz), intent(in) :: aj
+      integer, intent(in)                       :: nr
+      integer, intent(in)                       :: nnz
+      integer, dimension(nr+1), intent(in)                  :: ap
+      integer, dimension(nnz), intent(in)                   :: aj
       real(kind=STDD), dimension(nnz), intent(in), optional :: av
-      integer, dimension(nc+1), intent(out) :: bp
-      integer, dimension(nnz), intent(out) :: bi
+      integer, intent(in)                       :: nc
+      integer, dimension(nc+1), intent(out)                 :: bp
+      integer, dimension(nnz), intent(out)                  :: bi
       real(kind=STDD), dimension(nnz), intent(out), optional:: bv
-      integer :: cumsum, temp, last
+      integer :: cumsum, temp
       integer :: l, r, c, dest
-! compute number of non-zero entries per column of density matrix
+      ! compute number of non-zero entries per column of density matrix
       bp = 0
 !$OMP PARALLEL DO PRIVATE(l) reduction(+:bp)
       do l=1, nnz
@@ -159,34 +160,36 @@
       enddo
 !$OMP END PARALLEL DO
 
-! cummulate sum the number of non-zero entries per column to get bp()
-      cumsum = 0
+      ! cummulate sum the number of non-zero entries per column to get bp()
+      cumsum = 1
+      ! C/C++ , cumsum starts with 0, Fortran starts with 1
       do c=1, nc
         temp = bp(c)
         bp(c) = cumsum
         cumsum = cumsum + temp
       enddo
-      bp(nc+1) = nnz !== cumsum
+      bp(nc+1) = cumsum  ! == nnz + 1
+                         ! bi(bp(c) : bp(c+1)-1) is the column
 
+      ! go through csr structure once more, fill in output matrix
       do r=1, nr
-        do l=ap(r)+1, ap(r+1)
+        do l=ap(r), ap(r+1) - 1
           c = aj(l)
           dest = bp(c)
 
-          bi(dest+1) = r
+          bi(dest) = r
           if(PRESENT(av).and.PRESENT(bv)) then
-            bv(dest+1) = av(l)
+            bv(dest) = av(l)
           endif
-          
+          ! shift forward bp(:) 
           bp(c) = bp(c) + 1
         enddo ! l
       enddo! r
-! re-correct bp
-      last = 0
-      do c=1, nc + 1
-        temp = bp(c)
-        bp(c) = last
-        last = temp
+
+      ! shift back bp(:)
+      do c= nc+1, 2, -1
+        bp(c) = bp(c-1)
       enddo
+      bp(1) = 1
       end subroutine csr2csc
       end module stmheader

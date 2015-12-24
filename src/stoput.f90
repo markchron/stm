@@ -57,6 +57,7 @@
 	  write(FUNIT_OUT, lfmt) "Active cells no.", Nlacs
 	  call dprt_arr(ictind(1:Ngcll), Ngcll, "cell type index:")
       call dprt_arr(icdist, Ngcll, "cell dist domain:")
+      call dprt_arr(iwdist, Nwidx, "wellbore dist domain:")
 	  call dprt_arr(dcdx, Ngcll, "cell steps along X:")
 	  call dprt_arr(dcdy, Ngcll, "cell steps along Y:")
 	  call dprt_arr(dcdz, Ngcll, "cell steps along Z:")
@@ -234,7 +235,7 @@
 ! print software info
      subroutine st_soft_info
       write(FUNIT_LOG,'(T10,"Steam-based thermal reservoir simulator",/, &
-      T14,"Jan 2016",//)') 
+      T30,"Jan 2016",//)') 
      end subroutine st_soft_info
 ! PURPOSE
 ! check the stErrs info.

@@ -1,5 +1,6 @@
 ! METIS interface API
       module stmapimts
+      use stmheader, only : MASTER
       ! Graph (V,E) data structure consists of two arrays:
       ! vtxs, info. about the vertices
       ! total vertex number
@@ -37,19 +38,31 @@
       integer                   :: metis_rb 
       contains
       !
-      subroutine metis_init
-      metis_rb = 0
+      subroutine metis_init(style)
+      integer, intent(in)               :: style
+      metis_rb = style
       ncon = 1
       ! set option before calling METIS function
       call METIS_SetDefaultOptions(opts)
       end subroutine metis_init
 ! PURPOSE:
 ! partitioning the graph
+! input:
+! rbnot, = 1, multilevel recursive bisection partitioning
+!        = otherwise, multilevel k-way partition
+! rank, current processor rank. Only master processors print out
+! metis-debug info.
+! (nvtxs, nadys, iadj, adjncy) CSR-graph of the connection lists
+!  adjwgt:          weights of the connections
 ! ndomain : domains number
-! b_dist(nvtxs) 
-      subroutine metis_api(nvtxs, nadys, iadj, adjncy, adjwgt, ndomain,
-     &b_dist)
+! output:
+! b_dist(nvtxs) : partitioning domain index. starts with
+! METIS_OPTION_NUMBERING - opts(17) = 1
+      subroutine metis_api(rbnot,rank, nvtxs, nadys, 
+     &iadj, adjncy, adjwgt, ndomain, b_dist)
       use stmheader, only : STDD
+      integer, intent(in)                               :: rbnot
+      integer, intent(in)                               :: rank
       integer, intent(in)                               :: nvtxs
       integer, intent(in)                               :: nadys
       integer, dimension(nvtxs+1), intent(in)           :: iadj
@@ -66,31 +79,28 @@
 !      nullify(vwgt, vsize,vadjwgt)
 !      nullify(tpwgts, ubvec)
       
-      call metis_init
+      call metis_init(rbnot)
 
       ! iadj-adjncy, the adjacency structure (CSR) of the graph
       ! multilevel recursive bisection 
       if(metis_rb .eq. 1) then
-        call set_metis_options_rb
-!        call METIS_PartGraphRecursive(nvtxs, ncon, iadj, adjncy, 
-!     &null(), null(), adjwgt,ndomain, null(), null(), 
-!     &opts, objval, b_dist)
-!      vwgt    vsize                   tpwgts   ubvec
+        call set_metis_options_rb(rank)
+
         call METIS_PartGraphRecursive(nvtxs, ncon, iadj, adjncy,vwgt,
      &vsize,adjwgt,ndomain, tpwgts, ubvec, opts, objval, b_dist)
       else
       ! multilevel k-way partition
-        call set_metis_options_kway
-!        call METIS_PartGraphKway(nvtxs, ncon, iadj, adjncy, 
-!    &null(), null(), adjwgt,ndomain, null(), null(), opts, objval, b_dist)
-!     vwgt    vsize                   tpwgts   ubvec
+        call set_metis_options_kway(rank)
+!        opts(5) = 1
+
         call METIS_PartGraphKway(nvtxs, ncon, iadj, adjncy, vwgt,  
      &vsize,adjwgt, ndomain, tpwgts, ubvec, opts, objval, b_dist)
       endif
       end subroutine metis_api
 ! METIS options
       ! options : recursive bisection
-      subroutine set_metis_options_rb
+      subroutine set_metis_options_rb(rank)
+      integer, intent(in)               :: rank
       opts(0) = 0   ! 0, multilevel recursive bisectioing
       ! 2, METIS_OPTION_CTYPE, the matching schme to be used during
       ! coarsening. 
@@ -100,8 +110,8 @@
       ! 4, METIS_OPTION_RTYPE, algorithm for refinement
       opts(4) = 0
       ! 5, METIS_OPTION_DBGLVL, progress/debugging information. BITWISE
-      opts(5) = 1 
-      !opts(5) = 0
+      opts(5) = 0
+      if(rank == MASTER) opts(5) = 1 
       ! 6, METIS_OPTION_NITER, the number of iterations for the
       opts(6) = 10
       ! 7, METIS_OPTION_NCUTS, the number of different partitiongs that
@@ -126,7 +136,8 @@
       opts(15) = 1
       end subroutine set_metis_options_rb
       
-      subroutine set_metis_options_kway
+      subroutine set_metis_options_kway(rank)
+      integer, intent(in)               :: rank
       ! 0, METIS_OPTION_PTYPE 
       opts(0) = 1       ! 0, (default) Multilevel recursive bisectioning
                         ! 1, Multilevel k-way partitioning
@@ -156,7 +167,8 @@
                         ! 3, One-side node FM refinement
       ! 5, METIS_OPTION_DBGLVL, progress/debugging information. BITWISE
       opts(5) = 0       ! 0, (default) 
-      !opts(5) = 1 ! prints various diagnostic|debug msg
+                        ! 1, prints various diagnostic|debug msg
+      if(rank == MASTER) opts(5) = 1 
       ! 6, METIS_OPTION_NITER, the number of iterations for the
       ! refinement algorithm at each stage of the uncoarsening process
       opts(6) = 10      ! 10, default
@@ -175,7 +187,7 @@
       ! to minimize the maximum degree of the subdomain graph, i.e., the
       ! graph in which each partition is a node, and edges connect
       ! subdomains with a shared interface
-      opts(10) = 1      ! 0, (default) does not explicitly minimize 
+      opts(10) = 0      ! 0, (default) does not explicitly minimize 
                         ! the maximum connectivity
                         ! 1, explicitly minimize the maximum
                         ! connectivity

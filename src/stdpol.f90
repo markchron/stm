@@ -1,7 +1,6 @@
       module stmdatpol
       use stmheader
 	  integer 										:: nprocs, rank
-	  integer, parameter							:: MASTER = 0
       integer                                       :: nthread
 	  integer 										:: stiflen, stiftrunc
 	  character(BUF_LEN) 							:: stifnm ! input file name
@@ -30,7 +29,7 @@
       integer, dimension(:), allocatable, target    :: stIgvs
 	  integer, dimension(:), pointer 				:: ictind, icsecd, &
 	  ixly, iyly, izly, ialy, icidly, iwdir, ilyadj,  &
-      ivadj, icdist, iadjncy
+      ivadj, icdist, iwdist, iadjncy
 	  ! ictind(Ngcll), integer, grid cell type index
 	  ! 						normall type - all included in calculation
 	  ! 						in-active 
@@ -101,7 +100,7 @@
 	  ! call numofconnects 
       mxEdges = estimate_no_connects(fnstec, Ngcll)
       ! properties on global grid cells			  
-	  szIdp = Ngcll*3 + 5 * Nlyid + Ngcll+1 + Nwidx+1 + mxEdges
+	  szIdp = Ngcll*3 + 5 * Nlyid + Ngcll+1 + Nwidx+1 + mxEdges + Nwidx
 
 	  call palloc_i(stIgvs, szIdp, stErrs(1))
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ictind, Ngcll)
@@ -113,6 +112,7 @@
 	  call setptr_i(stIgvs, szIdp, ofstIdp, icidly, Nlyid)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ivadj, Ngcll + 1)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, icdist, Ngcll)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdist, Nwidx)
 
 	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdir, Nwidx)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ilyadj, Nwidx+1)
@@ -208,15 +208,62 @@
       call set_adjncy_trans(Nxd,Nyd,Nzd,fnstec, Ngedges, ivadj, perm3d, area3d, ds3d, iadjncy, detrans)
       end subroutine set_graph_connect
 ! PURPOSE:
+! domain partitioning algorithm
+      subroutine set_partition_dist
+      call set_dist_blocks
+      end subroutine set_partition_dist
+! PURPOSE:
 ! distribute the grid cells into each processor
       subroutine set_dist_clls
       use stmapimts, only : metis_api
       if (nprocs == 1) then
           icdist = 1
+          iwdist = 1
           return
       endif
-      call metis_api(Ngcll, Ngedges, ivadj, iadjncy, detrans, nprocs, icdist)
+      ! give the graph of grid cells and weighted by transmissibility between grid cells
+      call metis_api(0,rank,Ngcll, Ngedges, ivadj, iadjncy, detrans, nprocs, icdist)
+      ! 1, metis_recursive_bisection 
+      ! 0, metis_kway, keep contiguous of the partition 
       end subroutine set_dist_clls
+! PURPOSE:
+! distribute all the blocks (grid cell + wellblock) into each processor,
+! the edge-cut weighted by transmissibility & well index.
+!
+! CSR-graph of grid (Ngcll, Ngedges, ivadj, iadjncy, detrans)
+! CSR-graph of well (Nwidx, Nlyid, ilyadj, icidly, dlywitrs)
+      subroutine set_dist_blocks
+      use stmapimts, only : metis_api
+      use stmgeomet, only : combine_cwll_adj
+      !use stmoutput, only : dprt_csr
+      integer           :: nvtxs, negds
+      integer, dimension(Ngcll+Nwidx+1)         :: xadj
+      integer, dimension(Ngedges+2*Nlyid)       :: adjncy
+      real(STDD), dimension(Ngedges+2*Nlyid)    :: adjwgt
+      integer, dimension(Ngcll+Nwidx)           :: xdist
+
+      nvtxs = Ngcll + Nwidx
+      negds = Ngedges + 2 * Nlyid
+
+      call combine_cwll_adj(Ngcll, Ngedges, ivadj, iadjncy, detrans, &
+      Nwidx, Nlyid, ilyadj, icidly, dlywitrs,  &
+      nvtxs, negds, xadj, adjncy, adjwgt)
+      
+      !call dprt_csr(nvtxs, negds, xadj, adjncy, adjwgt,"trans-wellindex", 1)
+      
+      if(nprocs == 1) then
+          xdist = 1
+          return
+      endif
+
+      call metis_api(0,rank,nvtxs, negds, xadj, adjncy, adjwgt, nprocs, xdist)
+      ! 1, metis_recursive_bisection 
+      ! 0, metis_kway, failed !!!
+      
+      icdist = xdist(1:Ngcll)
+      iwdist = xdist(Ngcll + 1 : Ngcll + Nwidx)
+      end subroutine set_dist_blocks
+
 ! PURPOSE:
 ! de-associate the pointers
 ! release the memory

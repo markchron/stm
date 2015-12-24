@@ -62,8 +62,8 @@
 ! input:
 ! adjclls(nvtxs) : adjacency blocks number of each block
 ! output:
-! nadys, total edges|connections no. count repeated since adjclls(nvtxs)
-! stores for both points
+! nadys, total edges|connections no. ( no. is count repeatedly since adjclls(nvtxs)
+! stores for both points )
 ! iadj(nvtxs+1): the beginning index of csr adjacncy list
       subroutine nadjcny2iadj(nvtxs, adjclls, nadys, iadj)
       integer, intent(in)                       :: nvtxs
@@ -76,7 +76,7 @@
       do i = 1, nvtxs
         iadj(i+1) = iadj(i) + adjclls(i)
       enddo
-      nadys = iadj(nvtxs+1)
+      nadys = iadj(nvtxs+1) - 1  !! == sum(adjclls)
       end subroutine nadjcny2iadj
 ! count the adjacent grid-cells no. for each cell at five-stencial
 ! input:
@@ -324,6 +324,68 @@
       real(STDD), intent(out)           :: area
       area = length * width
       end subroutine set_area
+! PURPOSE:
+! combine the connection lists between grid cells, and between wellbore and
+! perforated layers into a total CSR-graph 
+! input:
+!   CSR-graph of grid cells:
+!     ncls, nnzcl, icadj, icncy, dcwgt
+!   CSR-graph of well perforated info.
+!     nwls, nnzwl, iwadj, iwncy, dwwgt
+      subroutine combine_cwll_adj(ncls, nnzcl, icadj, icncy, dcwgt, &
+      nwls, nnzwl, iwadj, iwncy, dwwgt, n, nnz, xadj, adjncy, adjwgt)
+      ! CSR-graph on grid cells
+      integer, intent(in)                       :: ncls, nnzcl
+      integer, dimension(ncls+1), intent(in)    :: icadj
+      integer, dimension(nnzcl), intent(in)     :: icncy
+      real(STDD), dimension(nnzcl), intent(in)  :: dcwgt
+      ! CSR-graph on well-grid
+      integer, intent(in)                       :: nwls, nnzwl
+      integer, dimension(nwls+1), intent(in)    :: iwadj
+      integer, dimension(nnzwl), intent(in)     :: iwncy
+      real(STDD), dimension(nnzwl), intent(in)  :: dwwgt
+
+      integer, intent(in)                       :: n, nnz
+      integer, dimension(n+1) , intent(out)     :: xadj
+      integer, dimension(nnz) , intent(out)     :: adjncy
+      real(STDD), dimension(nnz) , intent(out)  :: adjwgt
+
+      integer, dimension(ncls+1)                :: icwadj
+      integer, dimension(nnzwl)                 :: icwncy
+      real(STDD), dimension(nnzwl)              :: dcwwgt
+
+      integer, dimension(ncls) ::n1adj, n2adj, nadj
+      integer :: i
+      
+      call csr2csc(nr=nwls, nc=ncls, nnz=nnzwl, ap=iwadj, aj=iwncy,  &
+      av=dwwgt, bp=icwadj, bi=icwncy, bv=dcwwgt)
+
+      n1adj = icadj(2 :ncls+1) - icadj(1 :ncls)
+      n2adj = icwadj(2:ncls+1) - icwadj(1:ncls)
+      nadj = n1adj + n2adj
+
+      xadj = 0
+      xadj(1) = 1
+      do i = 1, ncls 
+        xadj(i+1) = xadj(i) + nadj(i)
+        
+        adjncy( xadj(i) : xadj(i) + n1adj(i)-1 ) = icncy(icadj(i)   : icadj(i+1)-1)
+        ! order the wellbore behind all grid cells
+        adjncy( xadj(i)+n1adj(i) : xadj(i+1)-1 ) = icwncy(icwadj(i) : icwadj(i+1)-1) + ncls
+
+        adjwgt( xadj(i) : xadj(i) + n1adj(i)-1 ) = dcwgt(icadj(i)   : icadj(i+1)-1)
+        adjwgt( xadj(i)+n1adj(i) : xadj(i+1)-1 ) = dcwwgt(icwadj(i) : icwadj(i+1) - 1)
+      enddo
+      ! order the wellbore behind all grid cells
+      do i = 1, nwls
+        xadj(ncls+1 + i) = xadj(ncls + i) + iwadj(i+1) - iwadj(i)
+
+        adjncy(xadj(ncls+i) : xadj(ncls+1+i)-1) = iwncy(iwadj(i) : iwadj(i+1)-1)
+
+        adjwgt(xadj(ncls+i) : xadj(ncls+1+i)-1) = dwwgt(iwadj(i) : iwadj(i+1)-1)
+      enddo
+
+      end subroutine combine_cwll_adj
 ! PURPOSE:
 ! convert between gid (natural order x-y-z) and UID
       pure integer function U2GID(ui, uj, uk, nx, ny)
