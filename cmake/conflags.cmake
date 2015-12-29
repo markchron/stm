@@ -11,7 +11,7 @@ if(CMAKE_Fortran_COMPILER_WORKS)
 		if(${UNIX})
 			#			set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -check all -warn all -fpe-all=3")
 			## attempt to use pointer when it is not associated with a target
-			set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -check bounds -check uninit -check format -warn all -fpe-all=3")
+			set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -check arg-temp_created -check bounds -check uninit -check format -check output_conversion -check nopointers -warn all -fpe-all=3")
 			set(CMAKE_Fortran_FLAGS_RELEASE "-O2 -vec-guard-write -fpconstant -extend-source -funroll-loops -align all -ip")
 			if(ST_WITH_OPENMP)
 				set(ST_OPENMP_OPTS "-openmp")

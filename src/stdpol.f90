@@ -235,7 +235,7 @@
       subroutine set_dist_blocks
       use stmapimts, only : metis_api
       use stmgeomet, only : combine_cwll_adj
-      !use stmoutput, only : dprt_csr
+      use stmvtkxml, only : prt_csr
       integer           :: nvtxs, negds
       integer, dimension(Ngcll+Nwidx+1)         :: xadj
       integer, dimension(Ngedges+2*Nlyid)       :: adjncy
@@ -249,17 +249,16 @@
       Nwidx, Nlyid, ilyadj, icidly, dlywitrs,  &
       nvtxs, negds, xadj, adjncy, adjwgt)
       
-      !call dprt_csr(nvtxs, negds, xadj, adjncy, adjwgt,"trans-wellindex", 1)
+      call prt_csr(FUNIT_OUT, nvtxs, negds, xadj, adjncy, adjwgt,"trans-wellindex", 1)
       
       if(nprocs == 1) then
           xdist = 1
-          return
+      else
+        call metis_api(0,rank,nvtxs, negds, xadj, adjncy, adjwgt, nprocs, xdist)
+        ! 1, metis_recursive_bisection 
+        ! 0, metis_kway, failed !!!
       endif
 
-      call metis_api(0,rank,nvtxs, negds, xadj, adjncy, adjwgt, nprocs, xdist)
-      ! 1, metis_recursive_bisection 
-      ! 0, metis_kway, failed !!!
-      
       icdist = xdist(1:Ngcll)
       iwdist = xdist(Ngcll + 1 : Ngcll + Nwidx)
       end subroutine set_dist_blocks

@@ -151,10 +151,10 @@
                         ! 2, METIS_OBJTYPE_NODE
       ! 2, METIS_OPTION_CTYPE, the matching schme to be used during
       ! coarsening. 
-      opts(2) = 1       ! 0, (default) random matching
+      opts(2) = 0       ! 0, (default) random matching
                         ! 1, sorted heavy-edge matching
       ! 3, METIS_OPTION_IPTYPE, algorithms during initial partition
-      opts(3) = 2       ! 0, Grows a bisection using a greedy strategy
+      opts(3) = 0       ! 0, Grows a bisection using a greedy strategy
                         ! 1, computes a bisection at random followed by
                         ! refinements
                         ! 2, derives a separator from an edge cut

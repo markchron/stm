@@ -16,13 +16,13 @@
       subroutine intial_memo
       integer :: err, nmemo, of
 
-      nmemo = 8 * n + 3
+      nmemo = 8 * n + 4
       call palloc_d(memo, nmemo, err)
       wfrac     => memo(1) 
       rw        => memo(2) 
       geofac    => memo(4)
 
-      of = 3
+      of = 4
       
       call setptr_d(memo, nmemo, of, skin, n)
       call setptr_d(memo, nmemo, of, permi, n)

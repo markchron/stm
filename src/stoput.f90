@@ -1,6 +1,7 @@
 	  module stmoutput
       use stmheader
       use stmdatpol
+      use stmvtkxml
 	  ! output format of single number
 	  ! 1, integer
 	  ! 2, float
@@ -78,164 +79,61 @@
         call dynlfmt(linefmt(i), novapl(i), valfmt(i))
       enddo
       end subroutine setupfmt
-	  subroutine dynlfmt(lfmt, n, vfmt)
-      character(*), intent(out) 		:: lfmt
-	  integer, intent(in) 				:: n
-	  character(*), intent(in) 			:: vfmt
-	  write(lfmt, '( "(", I3, "(",A,",1x))" )') n, trim(vfmt)
-	  end subroutine dynlfmt
-      subroutine dynlfmtspcs(lfmt, n, vfmt, sps)
-      character(*), intent(out) 		:: lfmt
-	  integer, intent(in) 				:: n
-	  character(*), intent(in) 			:: vfmt
-      integer, intent(in)               :: sps
-    
-      character(20) ::nchar, schar
-      write(nchar, '(I20)') n
-      write(schar, '(I20)') sps
-      lfmt ="(T"//trim(ADJUSTL(schar))//","//trim(ADJUSTL(nchar))//"("//trim(vfmt)//",1x))"
-      end subroutine dynlfmtspcs
 ! PURPOSE:
 ! print out array line by line
-!	  subroutine dprt_arr(arr,n,amsg, sci)
-!      character(*), intent(in) 				:: amsg
-!      integer, intent(in) 					:: n
-!	  class(*), dimension(n), intent(in) 	:: arr
-!	  integer, optional, intent(in) 		:: sci
-!
-!	  integer :: i, ni, npl
-!	  character(BUF_LEN) 					:: lfmt
-!	  lfmt = '(A,2x,"(size:"' // trim(valfmt(1)) // '" )")'
-!	  write(FUNIT_OUT,lfmt) amsg, n
-!	  
-!	  select type (arr) 
-!	  type is (real(STDD))
-!		if(PRESENT(sci)) then
-!			npl = novapl(3)
-!			lfmt = linefmt(3)
-!		else
-!			npl = novapl(2)
-!			lfmt = linefmt(2)
-!	    endif	
-!		ni = n / npl
-!		do i= 1, ni
-!          write(FUNIT_OUT, lfmt) arr((i-1)*npl+1 : i*npl)
-!        enddo
-!     	i = n - ni * npl 
-!        if(i>0) write(FUNIT_OUT, lfmt) arr(ni*npl+1 : n)
-!      type is (integer)
-!		 npl = novapl(1)
-!		 lfmt = linefmt(1)
-!		 ni = n / npl
-!		 do i = 1, ni
-!           write(FUNIT_OUT, lfmt) arr( ((i-1)*npl+1) : (i* npl))
-!         enddo
-!         i = n - ni * npl
-!         if ( i > 0 ) write(FUNIT_OUT, lfmt) arr(ni*npl + 1 : n)
-!      end select
-!      end subroutine dprt_arr
       subroutine dprt_arr_i(arr,n,amsg,sci)
       character(*), intent(in)              :: amsg
       integer, intent(in)                   :: n
       integer, dimension(:), intent(in)     :: arr
       integer, optional, intent(in)         :: sci
-      integer :: i, ni, npl
       character(BUF_LEN)                    :: lfmt
       lfmt = '(A,2x,"(size:"' // trim(valfmt(1)) // '" )")'
       write(FUNIT_OUT,lfmt) amsg, n
 
       if(PRESENT(sci)) return
 
-      npl = novapl(1)
-      lfmt = linefmt(1)
-      ni = n / npl
-      do i = 1, ni
-      write(FUNIT_OUT, lfmt) arr((i-1)*npl + 1 : i*npl)
-      enddo
-      i = n - ni * npl
-      if( i> 0) write(FUNIT_OUT, lfmt) arr(ni*npl + 1 : n)
+      call prt_arr_i(FUNIT_OUT, arr, n, linefmt(1), novapl(1))
       end subroutine dprt_arr_i
       subroutine dprt_arr_d(arr, n, amsg, sci)
       character(*), intent(in)              :: amsg
       integer, intent(in)                   :: n
       real(STDD),dimension(:), intent(in)   :: arr
       integer, optional, intent(in)         :: sci
-      integer :: i, ni, npl
       character(BUF_LEN)                    :: lfmt
       lfmt = '(A,2x,"(size:"' // trim(valfmt(1)) // '" )")'
       write(FUNIT_OUT,lfmt) amsg, n
 
       if(PRESENT(sci)) then
-          npl = novapl(3)
-          lfmt = linefmt(3)
+          call prt_arr_d(FUNIT_OUT, arr, n, linefmt(3), novapl(3))
       else
-          npl = novapl(2)
-          lfmt = linefmt(2)
+          call prt_arr_d(FUNIT_OUT, arr, n, linefmt(2), novapl(2))
       endif
-      ni = n / npl
-      do i = 1, ni
-      write(FUNIT_OUT, lfmt) arr((i-1)*npl + 1 : i *npl)
-      enddo
-      i = n - ni * npl
-      if(i > 0 ) write(FUNIT_OUT, lfmt) arr(ni*npl+1 : n)
       end subroutine dprt_arr_d
 
 ! print out a CSR format matrix
 ! input:
 ! sci, scientific print
       subroutine dprt_csr(n,nz,ai,aj,a, amsg, sci)
-      use stmdatpol, only : maxcol_csr
       character(*), intent(in)          :: amsg
       integer, intent(in)               :: n, nz
       integer, dimension(n+1), intent(in)   :: ai
       integer, dimension(nz), intent(in)    :: aj
       class(*), dimension(nz), intent(in)   :: a
       integer, optional, intent(in)         :: sci
-      ! numbers per line
-      integer        ::i, npl 
-      character(BUF_LEN)        :: tfmt, lfmt
-      tfmt = '(A,2x,"(row:", I9,2x,"nzero:", I20, ")")'
-      write(FUNIT_OUT, tfmt) amsg, n, nz
-      npl = maxcol_csr(n,ai)
-      call dynlfmt(lfmt, npl+1, "2xI9")
-      tfmt = repeat(' ', BUF_LEN)
-      select type (a)
-      type is (real(STDD))
-        if(PRESENT(sci)) then
-            call dynlfmtspcs(tfmt, npl, "ES11.3", 16)
-            do i = 1, n
-            write(FUNIT_OUT, lfmt) i, aj(ai(i) : ai(i+1) -1 )
-            write(FUNIT_OUT, tfmt) a( ai(i) : ai(i+1) -1 )
-            enddo
-        else
-            call dynlfmtspcs(tfmt, npl, "G11.3", 16)
-            do i = 1, n
-            write(FUNIT_OUT, lfmt) i, aj(ai(i) : ai(i+1) -1 )
-            write(FUNIT_OUT, tfmt) a( ai(i) : ai(i+1) -1 )
-            enddo
-         endif
-        type is(integer)
-            call dynlfmtspcs(tfmt, npl, "I11  ", 16)
-            do i = 1, n
-            write(FUNIT_OUT, lfmt) i, aj(ai(i) : ai(i+1) -1 )
-            write(FUNIT_OUT, tfmt) a( ai(i) : ai(i+1) -1 )
-            enddo
-        end select
+      
+      integer :: isc
+      if(PRESENT(sci)) isc = 1
+      call prt_csr(FUNIT_OUT, n, nz, ai, aj, a, amsg, isc)
       end subroutine dprt_csr
 ! PURPOSE:
 ! print out the omp info
       subroutine dprt_omp_system_info
-      use omp_lib
-      write(FUNIT_LOG, 6800) omp_get_num_procs(), omp_get_max_threads(), omp_get_num_threads()
- 6800 format(1x, 55('-'), /, T21, 'omp_get_num_procs', T45, I10,/, &
-      T21, 'omp_get_max_threads', T45, I10,/,  &
-      T21, 'omp_get_num_threads', T45, I10,/, 1x, 55('-') )
+      call prt_omp_system_info(FUNIT_LOG)
       end subroutine dprt_omp_system_info
 ! PURPOSE:
 ! print software info
      subroutine st_soft_info
-      write(FUNIT_LOG,'(T10,"Steam-based thermal reservoir simulator",/, &
-      T30,"Jan 2016",//)') 
+     call prt_soft_info(FUNIT_LOG)
      end subroutine st_soft_info
 ! PURPOSE
 ! check the stErrs info.
