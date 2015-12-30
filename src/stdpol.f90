@@ -27,13 +27,22 @@
 	  ! assigned the pointers. 
 	  integer 										:: szIdp, ofstIdp
       integer, dimension(:), allocatable, target    :: stIgvs
-	  integer, dimension(:), pointer 				:: ictind, icsecd, &
-	  ixly, iyly, izly, ialy, icidly, iwdir, ilyadj,  &
-      ivadj, icdist, iwdist, iadjncy
+      integer, dimension(:), pointer                :: ictind, icsecd, icgcat, &
+      icdist, &
+      iwdist, iwdir, &
+      ixly, iyly, izly, ialy, icidly, &
+      ivadj, ilyadj, iadjncy
 	  ! ictind(Ngcll), integer, grid cell type index
 	  ! 						normall type - all included in calculation
 	  ! 						in-active 
 	  ! 						pinch-out
+      ! icgcat(Ngcll), integer, grid cell location info.
+      !                         BTEST(icgcat, 1) I-
+      !                         BTEST(icgcat, 2) I+
+      !                         BTEST(icgcat, 3) J-
+      !                         BTEST(icgcat, 4) J+
+      !                         BTEST(icgcat, 5) underburden, kdir up:K-,down:K+
+      !                         BTEST(icgcat, 6) overburden, kdir up:K+,down:K-
       ! perforated layers info
       ! ixly(Nlyid), iyly(Nlyid), izly(Nlyid):UID of each perforated layer
       ! ialy(Nlyid) : connection of the layer: flow-from | flow-to
@@ -47,11 +56,12 @@
 	  ! associated with pointers
 	  integer 										:: szDdp, ofstDp
       real(STDD), dimension(:), allocatable, target :: stDgvs
-	  real(STDD), dimension(:), pointer 			:: dcdx, dcdy, dcdz, ds3d, &
+	  real(STDD), dimension(:), pointer             :: dcdx, dcdy, dcdz, ds3d, &
       dcareai, dcareaj, dcareak, area3d, dcpor, dcpermi, dcpermj, dcpermk, perm3d, &
       detrans, dethermtrs, & 
-      dwllrad, dwllgeof, dwllfrac, dlylenfr, dlyskin, dlywitrs, dlywitherm, &
-      dchtop
+      dwllrad, dwllgeof, dwllfrac, &
+      dlylenfr, dlyskin, dlywitrs, dlywitherm, &
+      dchtop, devnts
       ! dwllrad(Nwidx) : well radius
       ! dwllgeof(Nwidx) : geofactor
       ! dwllfrac(Nwidx) : well fraction 
@@ -59,6 +69,8 @@
       ! dlyskin(Nlyid) : skin
       ! dlywitrs(Nlyid) : well index - flow
       ! dlywitherm    :               - heat conduction
+
+      ! devnts(Events), date|events info.
 	  contains
 ! initialize the scalar pointers to the global datapool.
 	  subroutine datpol_init_scalar
@@ -100,38 +112,46 @@
 	  ! call numofconnects 
       mxEdges = estimate_no_connects(fnstec, Ngcll)
       ! properties on global grid cells			  
-	  szIdp = Ngcll*3 + 5 * Nlyid + Ngcll+1 + Nwidx+1 + mxEdges + Nwidx
+	  szIdp = Ngcll*4           &
+      + Nwidx * 2               &
+      + Nlyid * 5               &
+      + Ngcll+1 + Nwidx+1       &
+      + mxEdges 
 
 	  call palloc_i(stIgvs, szIdp, stErrs(1))
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ictind, Ngcll)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, icgcat, Ngcll)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, icsecd, Ngcll)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, icdist, Ngcll)
+
+	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdist, Nwidx)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdir, Nwidx)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ixly, Nlyid)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, iyly, Nlyid)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, izly, Nlyid)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ialy, Nlyid)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, icidly, Nlyid)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, ivadj, Ngcll + 1)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, icdist, Ngcll)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdist, Nwidx)
 
-	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdir, Nwidx)
+	  call setptr_i(stIgvs, szIdp, ofstIdp, ivadj, Ngcll + 1)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ilyadj, Nwidx+1)
 	  !call setptr_i(stIgvs, szIdp, ofstIdp, iadjncy, Ngedges)
 
-	  szDdp = 10 * Ngcll + Nxyplane &
-			  + 2 * mxEdges + 2 * Nlyid 
+      szDdp = Ngcll * 10            &
+      + Nwidx * 3                   &
+      + Nlyid * 4                   &
+      + Nxyplane + Nevents          &
+      + mxEdges * 2                 
+
 	  call palloc_d(stDgvs, szDdp, stErrs(2))
+
       call assoptr_d(stDgvs, szDdp, ofstDp, ds3d, 3*Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcdx, Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcdy, Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcdz, Ngcll)
-	  call setptr_d(stDgvs, szDdp, ofstDp, dchtop, Nxyplane)
-
       call assoptr_d(stDgvs, szDdp, ofstDp, area3d, 3*Ngcll)
       call setptr_d(stDgvs, szDdp, ofstDp, dcareai, Ngcll)
       call setptr_d(stDgvs, szDdp, ofstDp, dcareaj, Ngcll)
       call setptr_d(stDgvs, szDdp, ofstDp, dcareak, Ngcll)
-
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpor, Ngcll)
       call assoptr_d(stDgvs, szDdp, ofstDp, perm3d, 3*Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpermi, Ngcll)
@@ -149,6 +169,8 @@
 
 	  !call setptr_d(stDgvs, szDdp, ofstDp, detrans, Ngedges)
 	  !call setptr_d(stDgvs, szDdp, ofstDp, dethermtrs, Ngedges)
+	  call setptr_d(stDgvs, szDdp, ofstDp, dchtop, Nxyplane)
+      call setptr_d(stDgvs, szDdp, ofstDp, devnts, Nevents)
 	  end subroutine datpol_init_vect
 ! PURPOSE:
 ! based on the informations to updates the memory index
@@ -163,11 +185,15 @@
 ! PURPOSE:
 ! calculate the geometry informations:
 !      * area of each cell perpendicular three directions
+!      * grid cell location, BITWISE info. 
       subroutine set_geometry
-      use stmgeomet, only : set_area
+      use stmgeomet, only : set_area, set_clls_gcate
+      ! area
       call set_area(dcdy, dcdz, dcareai)
       call set_area(dcdx, dcdz, dcareaj)
       call set_area(dcdx, dcdy, dcareak)
+      ! location info.
+      call set_clls_gcate(Nxd, Nyd, Nzd, icgcat)
       end subroutine set_geometry
 ! PURPOSE:
 ! calculate the wellbore informations:
@@ -202,9 +228,13 @@
 ! update the graph connection info.
       subroutine set_graph_connect
       use stmgeomet, only : set_totl_connect_size, set_adjncy_trans
+      ! counts total edges no. based on grid cells and five|nine stencial
       call set_totl_connect_size(Nxd, Nyd, Nzd, fnstec, Ngedges, ivadj)
+      ! dynamic allocation
       call setptr_i(stIgvs, szIdp, ofstIdp, iadjncy, Ngedges)
       call setptr_d(stDgvs, szDdp, ofstDp, detrans, Ngedges)
+      call setptr_d(stDgvs, szDdp, ofstDp, dethermtrs, Ngedges)
+
       call set_adjncy_trans(Nxd,Nyd,Nzd,fnstec, Ngedges, ivadj, perm3d, area3d, ds3d, iadjncy, detrans)
       end subroutine set_graph_connect
 ! PURPOSE:
@@ -258,7 +288,7 @@
         ! 1, metis_recursive_bisection 
         ! 0, metis_kway, failed !!!
       endif
-
+      write(FUNIT_OUT, '("passed")')
       icdist = xdist(1:Ngcll)
       iwdist = xdist(Ngcll + 1 : Ngcll + Nwidx)
       end subroutine set_dist_blocks
@@ -267,12 +297,18 @@
 ! de-associate the pointers
 ! release the memory
       subroutine datpol_free
-      NULLIFY(ictind, icsecd)
-	  NULLIFY(ixly, iyly, izly, ialy, icidly, iwdir, ilyadj, ivadj, iadjncy)
-	  NULLIFY(dcdx, dcdy, dcdz, dchtop, dcpor, dcpermi, dcpermj, dcpermk)
-	  NULLIFY(detrans, dethermtrs)
+      NULLIFY(ictind, icsecd, icgcat, icdist)
+      NULLIFY(iwdist, iwdir)
+      NULLIFY(ixly, iyly, izly, ialy, icidly)
+      NULLIFY(ivadj, ilyadj, iadjncy)
+
+      NULLIFY(dcdx, dcdy, dcdz, ds3d)
+      NULLIFY(dcareai, dcareaj, dcareak, area3d)
+      NULLIFY(dcpor, dcpermi, dcpermj, dcpermk, perm3d)
+      NULLIFY(detrans, dethermtrs)
       NULLIFY(dwllrad, dwllgeof, dwllfrac)
       NULLIFY(dlylenfr, dlyskin, dlywitrs, dlywitherm)
+	  NULLIFY(dchtop, devnts)
 	  deallocate(stDgvs, STAT = stErrs(11))
 	  deallocate(stIgvs, STAT = stErrs(12))
 	  end subroutine datpol_free

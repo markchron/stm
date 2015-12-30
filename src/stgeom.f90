@@ -174,21 +174,34 @@
 ! BTEST(gcat, 2) I+
 ! BTEST(gcat, 3) J-
 ! BTEST(gcat, 4) J+
-! BTEST(gcat, 5) K- under-burden
-! BTEST(gcat, 6) K+ over-burden
+! BTEST(gcat, 5) under-burden, (kdir up: K-, down: K+)
+! BTEST(gcat, 6) over-burden (kdir up: K+, down: K-)
       subroutine set_clls_gcate(nx,ny,nz, gcat)
       integer, intent(in)                           :: nx, ny, nz
       integer, dimension(nz*ny*nx), intent(out)     :: gcat
 
-      integer :: n, i
+      integer :: n, i, s, e, k
       n = nz * ny * nx
       do i = 1, n, nx
         gcat(i) = IBSET(gcat(i), 1)
         gcat(i+nx-1) = IBSET(gcat(i+nx-1), 2)
       enddo
-      ! todo
+      ! K = 0 layer
+      s = ny * nx
+      gcat(1 : s) = IBSET(gcat(1 : s), 6) ! kdir down
+      ! K = nz layer
+      e = (nz-1)*s + 1 
+      gcat(e : n) = IBSET(gcat(e: n), 5)
+      ! switch if kdir up
+
       ! J
-      ! K
+      do k = 1, nz
+        e = (k-1) * s
+        gcat( e+1 : e+nx) = IBSET(gcat(e+1 : e+nx), 3)
+        e = k * s - nx
+        gcat( e+1 : e+nx) = IBSET(gcat(e+1 : e+nx), 4)
+      enddo
+
       end subroutine set_clls_gcate
 ! calculate the transmissibility AK/h of each connection. 
 ! input: 

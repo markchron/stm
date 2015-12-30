@@ -18,6 +18,7 @@
 
 	  Ncidx = 2
 	  Npidx = 3
+      Nevents = 5
 	  call npt_update
 	  call datpol_init_vect
       end subroutine npt_init
@@ -81,7 +82,9 @@
 
       dlylenfr = (/ (1.d0, i=1, NLYID) /)
       dlyskin = (/ (0.d0, i=1, NLYID) /)
-      
+     
+      ! data|events offset with initial, days
+      devnts =(/ (5.*i, i = 0, Nevents-1) /)
 	  end subroutine npt_set_properties
 	  
 ! -------------------------------------------------------------------------

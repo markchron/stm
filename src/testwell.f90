@@ -12,6 +12,8 @@
       call set_memo
       call wll_wi(wfrac, geofac, rw, skin, n, permi, permj, dz, dx, dy, hf, wi)
 
+      nullify(permi,permj, dx,dy, dz, hf, skin, wi)
+      deallocate(memo)
       contains
       subroutine intial_memo
       integer :: err, nmemo, of

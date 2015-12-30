@@ -154,14 +154,14 @@
       opts(2) = 0       ! 0, (default) random matching
                         ! 1, sorted heavy-edge matching
       ! 3, METIS_OPTION_IPTYPE, algorithms during initial partition
-      opts(3) = 0       ! 0, Grows a bisection using a greedy strategy
+      opts(3) = 2       ! 0, Grows a bisection using a greedy strategy
                         ! 1, computes a bisection at random followed by
                         ! refinements
                         ! 2, derives a separator from an edge cut
                         ! 3, grows a bisection using a greedy node-based
                         ! strategy
       ! 4, METIS_OPTION_RTYPE, algorithm for refinement
-      opts(4) = 0       ! 0, FM-based cut refinement
+      opts(4) = 2       ! 0, FM-based cut refinement
                         ! 1, Greedy-based cut and volume refinement
                         ! 2, Two side node FM refinement
                         ! 3, One-side node FM refinement

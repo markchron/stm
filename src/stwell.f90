@@ -186,24 +186,26 @@
       
       real(STDD), dimension(nlays) :: re
       real(STDD), dimension(nlays) :: perm
+      real(STDD), dimension(nlays) :: wi2
       call vertical_wll_re_hete(geofac, permi, permj, di, dj, re)
       call vertical_wll_perme_hete(permi, permj, perm)
       call vertical_wll_wi_hete(wfrac, perm, h, hfrac, re, rw, skin, wi)
-      wi = wi * ST_FUCONV
-      call prt_wll_wi(nlays, re, perm, wi)
+      wi2 = wi * ST_FUCONV
+      call prt_wll_wi(nlays, re, perm, wi, wi2)
       end subroutine wll_wi
 ! PURPOSE:
 ! debug for wll_wi
-      subroutine prt_wll_wi(n, re, perm, wi)
+      subroutine prt_wll_wi(n, re, perm, wi, wi2)
       integer, intent(in) :: n
       real(STDD), dimension(n), intent(in) :: re
       real(STDD), dimension(n), intent(in) :: perm
-      real(STDD), dimension(n), intent(in) :: wi
+      real(STDD), dimension(n), intent(in) :: wi, wi2
       integer :: i
-      write(*,'(T10, 3(1x,A10,1x))') "re(ft)    ", " perm(mD) ", &
-      " wi(xxxxx)"
+      write(*,'(T10, 4(1x,A10,1x))') "re(ft)    ", " perm(mD) ", &
+      " wi(md-ft)", " wi(??-??)"
       do i = 1, n
-        write(*, '(T10, 2(F11.3,1x), ES11.3)') re(i), perm(i), wi(i)
+        write(*, '(T10, 2(F11.3,1x), 2(ES11.3))') re(i), perm(i), &
+        wi(i), wi2(i)
       enddo
       end subroutine prt_wll_wi
       end module stmwllbor

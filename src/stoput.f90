@@ -139,6 +139,7 @@
 ! check the stErrs info.
 	  subroutine dprt_errmsg
       integer :: i
+      if(rank /= MASTER) return 
 	  i = sum(stErrs)
 	  if(i /= 0 ) then 
 		  write(FUNIT_LOG, '(TR10, "There are errors in stErrs." )')

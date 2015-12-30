@@ -33,8 +33,9 @@
 	  end subroutine st_init_memo
 
 	  subroutine st_reservoir_init
+      ! read in field & wellbore info.
       call npt_set_properties
-
+      ! update vector or control variables
 	  call datpol_update_index
 
 	  end subroutine st_reservoir_init
@@ -52,8 +53,8 @@
       include 'mpif.h'
 	  close(I_UNIT_5, IOSTAT = stErrs(9))
 	  close(FUNIT_OUT, IOSTAT = stErrs(10))
-
-	  if(rank == MASTER) call dprt_errmsg
+       ! print the error msgs
+	  call dprt_errmsg
 	  call datpol_free
 	  call MPI_FINALIZE(stErrs(6)) 
       end subroutine st_release_memo
