@@ -1,6 +1,6 @@
       module stmdatpol
       use stmheader
-	  integer 										:: nprocs, rank
+      integer                                       :: nprocs, rank, deck
       integer                                       :: nthread
 	  integer 										:: stiflen, stiftrunc
 	  character(BUF_LEN) 							:: stifnm ! input file name
@@ -21,21 +21,40 @@
       Ncidx, Npidx, Neqn, Npeqn, Nxyplane, &
       Nlyid, Ngedges, Nevents, &
       fnstec, metric
-	  integer, pointer :: Nlncs, Nlacs, Nlnbls, Nlnwls, Nlnlys, Nlneds
+      ! local 
+      integer, pointer :: Nlncs, Nlacs, Nlnbls, Nlnwls, Nlnlys, Nlneds, &
+      Nlninn, Nlnbrd, Nlnext
+      ! Nlncs, local grid cells no.
+      ! Nlacs, local active cells no.
+      ! Nlnbls, local blocks (cells + wells) no.
+      ! Nlnwls, local well blks no.
+      ! Nlnlys, local perforated layers no.
+      ! Nlneds, local connections no.
+      ! Nlninn, local inner blocks no.
+      ! Nlnbrd, local border blocks no.
+      ! Nlnext, local external blocks no.
+
 	  
 	  ! stIgvs(szIdp), integer data pool; so far, only stIgvs(1:ofstIdp) was
 	  ! assigned the pointers. 
 	  integer 										:: szIdp, ofstIdp
       integer, dimension(:), allocatable, target    :: stIgvs
-      integer, dimension(:), pointer                :: ictind, icsecd, icgcat, &
-      icdist, &
-      iwdist, iwdir, &
+      integer, dimension(:), pointer                :: ictind, icsecd, icgcat,&
+      icdist, iccatl, &
+      iwdist, iwdir, iwcatl, &
       ixly, iyly, izly, ialy, icidly, &
-      ivadj, ilyadj, iadjncy
+      ivadj, ilyadj, iadjncy, &
+      ibdist, ibcatl
 	  ! ictind(Ngcll), integer, grid cell type index
 	  ! 						normall type - all included in calculation
 	  ! 						in-active 
 	  ! 						pinch-out
+      ! icsecd(Ngcll)
+      ! iccatl(Ngcll), integer, grid cell category on local partition
+      !                         = 0, NOT ON current deck
+      !                         = 1, inner
+      !                         = 2, border
+      !                         = 3, external
       ! icgcat(Ngcll), integer, grid cell location info.
       !                         BTEST(icgcat, 1) I-
       !                         BTEST(icgcat, 2) I+
@@ -43,12 +62,14 @@
       !                         BTEST(icgcat, 4) J+
       !                         BTEST(icgcat, 5) underburden, kdir up:K-,down:K+
       !                         BTEST(icgcat, 6) overburden, kdir up:K+,down:K-
+      ! icdist(Ngcll), integer, grid cell assigned domain|deck index
+      ! 
+      ! iwdist(Nwidx), integer, wellbore block assigned domain|deck index
+      ! iwdir(Nwidx) : well direction
       ! perforated layers info
       ! ixly(Nlyid), iyly(Nlyid), izly(Nlyid):UID of each perforated layer
       ! ialy(Nlyid) : connection of the layer: flow-from | flow-to
       ! icidly(Nlyid) : natural order of the perforated layer
-      ! iwly(Nlyid) :
-      ! iwdir(Nwidx) : well direction
       ! ilyadj(Nwidx+1) : perforated layers index of each well into perforated 
       ! layers info
       ! 
@@ -95,16 +116,38 @@
 	  						! default, field units
       Nevents => stIcsv(17)  ! total events no.
 
-	  Nlncs =>  stIcsv(7) 	! local grid cells number
-	  Nlacs => 	stIcsv(8) 	! local active cells number
-	  Nlnbls => stIcsv(9)   !
-	  Nlnwls => stIcsv(4) 	! local well blks no.
-	  Nlnlys => stIcsv(13)  ! local perforated layers no.
-	  Nlneds => stIcsv(14)  ! local connections (edges) no.
-	  
 	  ofstIdp = 0; ofstDp = 0
 	  fnstec = 0; metric = 0
 	  end subroutine datpol_init_scalar
+! PURPOSE:
+! local variables points to global variables, no domain partitioning
+      subroutine datpol_init_scalar_loc_serial
+      Nlninn    => stIcsv(101) ! inner
+      Nlnbrd    => stIcsv(102) ! border
+      Nlnext    => stIcsv(103) ! external
+      
+      Nlnwls => stIcsv(4)   ! local well blks no. = total
+      
+      Nlncs =>  stIcsv(7)   ! local grid cells number = total
+      Nlacs =>  stIcsv(8)   ! local active cells number = total
+      Nlnbls => stIcsv(9)   ! local blocks no. = total
+     
+      Nlnlys => stIcsv(13)  ! local perforated layers no. = total
+      Nlneds => stIcsv(14)  ! local connections (edges) no. =total
+      end subroutine datpol_init_scalar_loc_serial
+      subroutine datpol_init_scalar_loc
+      Nlninn    => stIcsv(101) ! inner
+      Nlnbrd    => stIcsv(102) ! border
+      Nlnext    => stIcsv(103) ! external
+      Nlnwls    => stIcsv(104) ! well blks
+
+      Nlncs     => stIcsv(107) ! 
+      Nlacs     => stIcsv(108)
+      Nlnbls    => stIcsv(109)
+
+      Nlnlys    => stIcsv(113)
+      Nlneds    => stIcsv(114)
+      end subroutine datpol_init_scalar_loc
 ! after get the problem size (npt_init), initialize the array|vector pointers
 	  subroutine datpol_init_vect
       integer           :: mxEdges
@@ -112,8 +155,8 @@
 	  ! call numofconnects 
       mxEdges = estimate_no_connects(fnstec, Ngcll)
       ! properties on global grid cells			  
-	  szIdp = Ngcll*4           &
-      + Nwidx * 2               &
+	  szIdp = Ngcll*5           &
+      + Nwidx * 3               &
       + Nlyid * 5               &
       + Ngcll+1 + Nwidx+1       &
       + mxEdges 
@@ -122,9 +165,15 @@
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ictind, Ngcll)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, icgcat, Ngcll)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, icsecd, Ngcll)
-	  call setptr_i(stIgvs, szIdp, ofstIdp, icdist, Ngcll)
 
-	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdist, Nwidx)
+      call assoptr_i(stIgvs, szIdp, ofstIdp, ibdist, Ngidx)
+      call setptr_i(stIgvs, szIdp, ofstIdp, icdist, Ngcll)
+      call setptr_i(stIgvs, szIdp, ofstIdp, iwdist, Nwidx)
+
+      call assoptr_i(stIgvs, szIdp, ofstIdp, ibcatl, Ngidx)
+      call setptr_i(stIgvs, szIdp, ofstIdp, iccatl, Ngcll)
+      call setptr_i(stIgvs, szIdp, ofstIdp, iwcatl, Nwidx)
+
 	  call setptr_i(stIgvs, szIdp, ofstIdp, iwdir, Nwidx)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ixly, Nlyid)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, iyly, Nlyid)
@@ -240,21 +289,36 @@
 ! PURPOSE:
 ! domain partitioning algorithm
       subroutine set_partition_dist
+      icdist = 1
+      iwdist = 1
+      ! partition only on grid cells
+      !call set_dist_clls
+      ! partition on all the blocks
       call set_dist_blocks
+      
       end subroutine set_partition_dist
 ! PURPOSE:
 ! distribute the grid cells into each processor
       subroutine set_dist_clls
       use stmapimts, only : metis_api
+      use stmgeomet, only : set_loc_size
       if (nprocs == 1) then
-          icdist = 1
-          iwdist = 1
+          call datpol_init_scalar_loc_serial
+          ibcatl = 1
           return
       endif
       ! give the graph of grid cells and weighted by transmissibility between grid cells
       call metis_api(0,rank,Ngcll, Ngedges, ivadj, iadjncy, detrans, nprocs, icdist)
       ! 1, metis_recursive_bisection 
       ! 0, metis_kway, keep contiguous of the partition 
+
+      ! based on the partition results, calculate the grid cells type
+      ! (inner|border|external) and count grid cells no. of different type
+      ! associate the local pointers to 'stIcsv'
+      call datpol_init_scalar_loc
+      ! calculate the grid cell type (inner|border|external) and count grid cells no.
+      call set_loc_size(deck, Ngcll, icdist, Ngedges, ivadj, iadjncy, detrans, &
+      iccatl, Nlninn, Nlnbrd, Nlnext)
       end subroutine set_dist_clls
 ! PURPOSE:
 ! distribute all the blocks (grid cell + wellblock) into each processor,
@@ -264,41 +328,48 @@
 ! CSR-graph of well (Nwidx, Nlyid, ilyadj, icidly, dlywitrs)
       subroutine set_dist_blocks
       use stmapimts, only : metis_api
-      use stmgeomet, only : combine_cwll_adj
+      use stmgeomet, only : combine_cwll_adj, set_loc_size
       use stmvtkxml, only : prt_csr
-      integer           :: nvtxs, negds
-      integer, dimension(Ngcll+Nwidx+1)         :: xadj
+      integer           :: negds
+      integer, dimension(Ngidx+1)         :: xadj
       integer, dimension(Ngedges+2*Nlyid)       :: adjncy
       real(STDD), dimension(Ngedges+2*Nlyid)    :: adjwgt
-      integer, dimension(Ngcll+Nwidx)           :: xdist
 
-      nvtxs = Ngcll + Nwidx
       negds = Ngedges + 2 * Nlyid
 
       call combine_cwll_adj(Ngcll, Ngedges, ivadj, iadjncy, detrans, &
       Nwidx, Nlyid, ilyadj, icidly, dlywitrs,  &
-      nvtxs, negds, xadj, adjncy, adjwgt)
+      Ngidx, negds, xadj, adjncy, adjwgt)
       
-      call prt_csr(FUNIT_OUT, nvtxs, negds, xadj, adjncy, adjwgt,"trans-wellindex", 1)
+      call prt_csr(FUNIT_OUT, Ngidx, negds, xadj, adjncy, adjwgt,"trans-wellindex", 1)
       
       if(nprocs == 1) then
-          xdist = 1
-      else
-        call metis_api(0,rank,nvtxs, negds, xadj, adjncy, adjwgt, nprocs, xdist)
-        ! 1, metis_recursive_bisection 
-        ! 0, metis_kway, failed !!!
+          ! associate the local pointers to global pointers position
+          call datpol_init_scalar_loc_serial
+          ibcatl = 1
+          return
       endif
-      write(FUNIT_OUT, '("passed")')
-      icdist = xdist(1:Ngcll)
-      iwdist = xdist(Ngcll + 1 : Ngcll + Nwidx)
+      call metis_api(1,rank,Ngidx, negds, xadj, adjncy, adjwgt, nprocs, ibdist)
+      ! 1, metis_recursive_bisection 
+      ! 0, metis_kway, failed !!!
+
+      ! based on the partition results, calculate the blocks type
+      ! (inner|border|external) and count blocks no.
+      ! associate the local pointers to 'stIcsv'
+      call datpol_init_scalar_loc
+      ! calculate the blocks type (inner|border|external) and count blocks no.
+      call set_loc_size(deck, Ngidx, ibdist, negds, xadj, adjncy, adjwgt, ibcatl, &
+      Nlninn, Nlnbrd, Nlnext)
+
       end subroutine set_dist_blocks
 
 ! PURPOSE:
 ! de-associate the pointers
 ! release the memory
       subroutine datpol_free
-      NULLIFY(ictind, icsecd, icgcat, icdist)
-      NULLIFY(iwdist, iwdir)
+      NULLIFY(ictind, icsecd, icgcat, icdist, iccatl)
+      NULLIFY(iwdist, iwdir, iwcatl)
+      NULLIFY(ibdist, ibcatl)
       NULLIFY(ixly, iyly, izly, ialy, icidly)
       NULLIFY(ivadj, ilyadj, iadjncy)
 

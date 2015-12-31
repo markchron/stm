@@ -78,7 +78,7 @@
 !      real(8), pointer          :: tpwgts, ubvec
 !      nullify(vwgt, vsize,vadjwgt)
 !      nullify(tpwgts, ubvec)
-      
+      print *, "get in metis" 
       call metis_init(rbnot)
 
       ! iadj-adjncy, the adjacency structure (CSR) of the graph
@@ -96,6 +96,7 @@
         call METIS_PartGraphKway(nvtxs, ncon, iadj, adjncy, vwgt,  
      &vsize,adjwgt, ndomain, tpwgts, ubvec, opts, objval, b_dist)
       endif
+      print *, "get out metis" 
       end subroutine metis_api
 ! METIS options
       ! options : recursive bisection
@@ -129,7 +130,7 @@
                     ! 1, total communication volume minimization
                     ! 2, METIS_OBJTYPE_NODE
       opts(10) = 0
-      opts(11) = 1
+      opts(11) = 0  ! 0, default, 1, contiguous
       opts(12) = 0
       opts(13) = 0
       opts(14) = 0

@@ -11,7 +11,9 @@ if(CMAKE_Fortran_COMPILER_WORKS)
 		if(${UNIX})
 			#			set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -check all -warn all -fpe-all=3")
 			## attempt to use pointer when it is not associated with a target
-			set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -check arg-temp_created -check bounds -check uninit -check format -check output_conversion -check nopointers -warn all -fpe-all=3")
+			set(CMAKE_Fortran_FLAGS_DEBUG 
+				"-g -traceback -check arg-temp_created -check bounds -check uninit -check format -check output_conversion -check nopointers -warn all -fpe-all=3"
+				)
 			set(CMAKE_Fortran_FLAGS_RELEASE "-O2 -vec-guard-write -fpconstant -extend-source -funroll-loops -align all -ip")
 			if(ST_WITH_OPENMP)
 				set(ST_OPENMP_OPTS "-openmp")
@@ -55,3 +57,25 @@ if(CMAKE_Fortran_COMPILER_WORKS)
 	
 endif() ## CMAKE_Fortran_COMPILER_WORKS
 
+if(CMAKE_C_COMPILER_WORKS)
+	if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+	elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+		if(${UNIT})
+			set(CMAKE_C_FLAGS_DEBUG "-g -O0 -traceback -check-unint -debug ")
+			set(CMAKE_C_FLAGS_RELEASE "-O2 -fp-model precise")
+		elseif(${WIN32})
+		endif()
+	elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
+	elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+	else()
+	endif() 
+
+	if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${ST_OPENMP_OPTS}")
+		set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS_DEBUG})
+	elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+		set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${ST_OPENMP_OPTS}")
+		set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS_RELEASE})
+	else()
+	endif()
+endif()# _works

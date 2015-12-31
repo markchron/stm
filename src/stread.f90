@@ -16,8 +16,8 @@
 	  fnstec = 0 		! pre-read:  discretized format, 5 or 9 points
 	  metric = 0 		! field units
 
-	  Ncidx = 2
-	  Npidx = 3
+      Ncidx = 2 ! components no.
+      Npidx = 3 ! phases no.
       Nevents = 5
 	  call npt_update
 	  call datpol_init_vect
@@ -25,8 +25,8 @@
 ! update the data size related info 
 	  subroutine npt_update
 	  Nxyplane = Nxd * Nyd
-      Ngcll = Nxyplane * Nzd
-	  Ngidx = Ngcll + Nwidx
+      Ngcll = Nxyplane * Nzd ! total grid cells
+      Ngidx = Ngcll + Nwidx  ! total blocks
 
 	  Neqn = Ncidx + 1 + Npidx + 1
 	  Npeqn = Ncidx + 1

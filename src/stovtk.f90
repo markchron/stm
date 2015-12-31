@@ -162,7 +162,17 @@
 !         if ( i > 0 ) write(FUNIT, lfmt) arr(ni*npl + 1 : n)
 !      end select
 !      end subroutine prt_arr
-
+     subroutine prt_scalar(funit, msg, var)
+     integer, intent(in)            :: funit
+     character(*), intent(in)       :: msg
+     class(*), intent(in)           :: var
+     select type (var)
+     type is (integer) 
+         write(funit, '(T2,A,":",T42,I6)') msg, var
+     type is(real(STDD))
+         write(funit, '(T2,A,":",T42,ES9.2)') msg, var
+     end select
+     end subroutine prt_scalar
     
 
       end module stmvtkxml

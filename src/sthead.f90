@@ -6,7 +6,9 @@
       real(kind=STDD), parameter :: ST_TOL_EPSILON = 1.e-13
       real(kind=STDD), parameter :: ST_FPE_TOL = 1.e-13
       real(kind=STDD), parameter :: ST_FPE_INF = 9.e30
+      
       integer, parameter         :: MASTER = 0
+      integer, parameter         :: ST_OMP_LIMIT = 5000
       
        ! associate array pointer to a target data pool
       interface set_ptr

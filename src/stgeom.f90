@@ -1,6 +1,87 @@
       module stmgeomet
       use stmheader
       contains
+! count the local inner, border, external grid cells no. and
+! local internal(inner+border) cells no. local (internal +external)
+! cells no.
+      subroutine set_loc_size(deck, nvtxs, ddist, nadys, iadj, adjncy, &
+      adjwgt, ivcatl, ninn, nbrd, next)
+      integer, intent(in)                   :: deck
+      integer, intent(in)                   :: nvtxs
+      integer, dimension(nvtxs), intent(in) :: ddist
+      integer, intent(in)                   :: nadys
+      integer, dimension(nvtxs+1), intent(in)   :: iadj
+      integer, dimension(nadys), intent(in)     :: adjncy
+      real(STDD), dimension(nadys), intent(in)  :: adjwgt
+      integer, dimension(nvtxs), intent(out)    :: ivcatl
+      integer, intent(out)                  :: ninn, nbrd, next
+      call set_loc_clls_cate(deck, nvtxs, ddist, nadys, iadj, adjncy, &
+      adjwgt, ivcatl)
+      call update_loc_clls_size(nvtxs, ivcatl, ninn, nbrd, next)
+      end subroutine set_loc_size
+! counts no.
+      subroutine update_loc_clls_size(nvtxs, ivcatl, ninn, nbrd, next)
+      integer, intent(in)                   :: nvtxs
+      integer, dimension(nvtxs), intent(in) :: ivcatl
+      integer, intent(out)                  :: ninn, nbrd, next
+
+      integer  :: h, iarr(3)
+      iarr = 0
+!$OMP PARALLEL if(nvtxs>ST_OMP_LIMIT)
+!$OMP DO REDUCTION(+:iarr)
+      do h = 1, nvtxs
+        select case( ivcatl(h))
+        case (1) ! inner
+            iarr(1) = iarr(1) + 1
+        case (2) ! border
+            iarr(2) = iarr(2) + 1
+        case (3) ! external
+            iarr(3) = iarr(3) + 1
+        end select
+      enddo
+!$OMP END DO
+!$OMP END PARALLEL
+      ninn = iarr(1) 
+      nbrd = iarr(2) 
+      next = iarr(3)
+      end subroutine update_loc_clls_size
+! calculate the block category based on local subdeck
+      subroutine set_loc_clls_cate(deck, nvtxs, ddist, nadys,        &
+      iadj, adjncy, adjwgt, ivcatl)
+      integer, intent(in)                   :: deck
+      integer, intent(in)                   :: nvtxs
+      integer, dimension(nvtxs), intent(in) :: ddist
+      integer, intent(in)                   :: nadys
+      integer, dimension(nvtxs+1), intent(in)   :: iadj
+      integer, dimension(nadys), intent(in)     :: adjncy
+      real(STDD), dimension(nadys), intent(in)  :: adjwgt
+      integer, dimension(nvtxs), intent(out)    :: ivcatl
+
+      integer :: h, n
+      logical :: border
+      ivcatl = 0
+!$OMP PARALLEL PRIVATE(n, border) if(nvtxs>ST_OMP_LIMIT)
+!$OMP FLUSH(ddist, iadj, adjncy, adjwgt)
+!$OMP DO
+      do h = 1, nvtxs
+        border = .false.
+        if( ddist(h) /= deck ) cycle
+        do n = iadj(h), iadj(h+1) - 1
+          if( ddist(adjncy(n)) /= deck) then ! external
+            if( adjwgt(n) > ST_TOL_EPSILON ) ivcatl( adjncy(n) ) = 3  ! tranmissibility > 0
+            border = .true.
+          endif
+        enddo
+        if(border) then
+            ivcatl(h) = 2
+        else
+            ivcatl(h) = 1
+        endif
+      enddo
+!$OMP END DO
+!$OMP FLUSH(ivcatl)
+!$OMP END PARALLEL
+      end subroutine set_loc_clls_cate
 ! calculate the global connections number in the whole region
 ! (1:nx,1:ny,1:nz)
       subroutine no_totl_connections(nx,ny,nz, forn, num)

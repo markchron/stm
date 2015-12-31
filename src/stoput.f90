@@ -59,6 +59,12 @@
 	  call dprt_arr(ictind(1:Ngcll), Ngcll, "cell type index:")
       call dprt_arr(icdist, Ngcll, "cell dist domain:")
       call dprt_arr(iwdist, Nwidx, "wellbore dist domain:")
+      call dprt_arr(ibcatl, Ngidx, 'block type (inner|border|external)')
+
+      call prt_scalar(FUNIT_OUT, "local inner blocks", Nlninn)
+      call prt_scalar(FUNIT_OUT, "local border blocks", Nlnbrd)
+      call prt_scalar(FUNIT_OUT, "local external blocks", Nlnext)
+      
 	  call dprt_arr(dcdx, Ngcll, "cell steps along X:")
 	  call dprt_arr(dcdy, Ngcll, "cell steps along Y:")
 	  call dprt_arr(dcdz, Ngcll, "cell steps along Z:")
@@ -68,6 +74,7 @@
 	  call dprt_arr(dcpermi, Ngcll, "Permeability I (mD)")
 	  call dprt_arr(dcpermj, Ngcll, "Permeability J:")
 	  call dprt_arr(dcpermk, Ngcll, "Permeability K:")
+      
       end subroutine dprt_datpol
 ! set up the output format of each line	  
 	  subroutine setupfmt

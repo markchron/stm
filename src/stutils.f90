@@ -16,6 +16,8 @@
 		  call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, stErrs(7))
 		  call MPI_COMM_RANK(MPI_COMM_WORLD, rank, stErrs(8))
 	  endif
+      deck = rank + 1
+
       call omp_system_optimal_num_threads
 	  ! input file name
 	  call get_ifile
