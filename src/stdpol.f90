@@ -23,16 +23,23 @@
       fnstec, metric
       ! local 
       integer, pointer :: Nlncs, Nlacs, Nlnbls, Nlnwls, Nlnlys, Nlneds, &
-      Nlninn, Nlnbrd, Nlnext
-      ! Nlncs, local grid cells no.
-      ! Nlacs, local active cells no.
-      ! Nlnbls, local blocks (cells + wells) no.
-      ! Nlnwls, local well blks no.
+      Nlbinn, Nlbbrd, Nlbext, Nlbint, Nlcinn, Nlcbrd, Nlcext, Nlcint,   &
+      Nlwinn, Nlwbrd, Nlwext, Nlwint
+      ! Nlnbls, local blocks (cells + wells) no. (Nlncs+Nlnwls)
+      !                             = Nlbinn + Nlbbrd + Nlbext
+      !                             = Nlbint + Nlbext
+      ! Nlncs, local grid cells no. (internal+external cells)
+      !                             = Nlcint + Nlcext
+      ! Nlnwls, local well blks no. (internal + external wells)
+      !                             = Nlwint + Nlwext
+      ! Nlacs, local active cells no. 
       ! Nlnlys, local perforated layers no.
       ! Nlneds, local connections no.
-      ! Nlninn, local inner blocks no.
-      ! Nlnbrd, local border blocks no.
-      ! Nlnext, local external blocks no.
+
+      ! Nlbinn, local inner blocks no.
+      ! Nlbbrd, local border blocks no.
+      ! Nlbext, local external blocks no.
+      ! Nlbint, internal blocks no. = Nlbinn + Nlbbrd
 
 	  
 	  ! stIgvs(szIdp), integer data pool; so far, only stIgvs(1:ofstIdp) was
@@ -98,12 +105,12 @@
       Nxd => 	stIcsv(1) 	! Nxd, N in x
 	  Nyd => 	stIcsv(2) 	! Nyd, N in y
 	  Nzd => 	stIcsv(3) 	! Nzd, N in z
-	  Nwidx => 	stIcsv(4)  	! Nwidx, total wells number
+	  Ngacl => 	stIcsv(4) 	! total active grid cells number
 	  Ncidx => 	stIcsv(5) 	! Ncidx, total components no.
 	  Npidx => 	stIcsv(6) 	! Npidx, total phases no.
 
 	  Ngcll => 	stIcsv(7) 	! total grid cells number
-	  Ngacl => 	stIcsv(8) 	! total active grid cells number
+	  Nwidx => 	stIcsv(8)  	! Nwidx, total wells number
       Ngidx =>  stIcsv(9) 	! total global blocks number
 	  Npeqn => 	stIcsv(10)  ! primary eqns no.
 	  Neqn 	=> 	stIcsv(11)  ! Ncidx + 1 + Npidx + 1 + Nequil
@@ -120,33 +127,29 @@
 	  fnstec = 0; metric = 0
 	  end subroutine datpol_init_scalar
 ! PURPOSE:
-! local variables points to global variables, no domain partitioning
-      subroutine datpol_init_scalar_loc_serial
-      Nlninn    => stIcsv(101) ! inner
-      Nlnbrd    => stIcsv(102) ! border
-      Nlnext    => stIcsv(103) ! external
-      
-      Nlnwls => stIcsv(4)   ! local well blks no. = total
-      
-      Nlncs =>  stIcsv(7)   ! local grid cells number = total
-      Nlacs =>  stIcsv(8)   ! local active cells number = total
-      Nlnbls => stIcsv(9)   ! local blocks no. = total
-     
-      Nlnlys => stIcsv(13)  ! local perforated layers no. = total
-      Nlneds => stIcsv(14)  ! local connections (edges) no. =total
-      end subroutine datpol_init_scalar_loc_serial
       subroutine datpol_init_scalar_loc
-      Nlninn    => stIcsv(101) ! inner
-      Nlnbrd    => stIcsv(102) ! border
-      Nlnext    => stIcsv(103) ! external
-      Nlnwls    => stIcsv(104) ! well blks
+      Nlcinn    => stIcsv(101) ! cells
+      Nlcbrd    => stIcsv(104)
+      Nlcext    => stIcsv(107)
+      Nlcint    => stIcsv(110)
+      Nlncs     => stIcsv(113) ! local cells
 
-      Nlncs     => stIcsv(107) ! 
-      Nlacs     => stIcsv(108)
-      Nlnbls    => stIcsv(109)
+      Nlwinn    => stIcsv(102) ! wells
+      Nlwbrd    => stIcsv(105)
+      Nlwext    => stIcsv(108)
+      Nlwint    => stIcsv(111)
+      Nlnwls    => stIcsv(114) ! local well 
 
-      Nlnlys    => stIcsv(113)
-      Nlneds    => stIcsv(114)
+      Nlbinn    => stIcsv(103) ! inner blks
+      Nlbbrd    => stIcsv(106) ! border blks
+      Nlbext    => stIcsv(109) ! external blks
+      Nlbint    => stIcsv(112) ! internal blks.
+      Nlnbls    => stIcsv(115) ! local blks. = internal + external
+
+      Nlacs     => stIcsv(116)
+      Nlnlys    => stIcsv(117)
+      Nlneds    => stIcsv(118)
+
       end subroutine datpol_init_scalar_loc
 ! after get the problem size (npt_init), initialize the array|vector pointers
 	  subroutine datpol_init_vect
@@ -291,34 +294,42 @@
       subroutine set_partition_dist
       icdist = 1
       iwdist = 1
+      ! associate the local pointers to 'stIcsv'
+      call datpol_init_scalar_loc
+
       ! partition only on grid cells
-      !call set_dist_clls
+      call set_dist_clls
       ! partition on all the blocks
-      call set_dist_blocks
+      !call set_dist_blocks
+
+      ! local internal(inner+border) cells no. 
+      ! local (internal +external) cells no.
       
+       
       end subroutine set_partition_dist
 ! PURPOSE:
 ! distribute the grid cells into each processor
       subroutine set_dist_clls
       use stmapimts, only : metis_api
-      use stmgeomet, only : set_loc_size
+      use stmgeomet, only : set_loc_clls_size, set_locsize_serial, &
+      set_locsize_serial
       if (nprocs == 1) then
-          call datpol_init_scalar_loc_serial
+          call set_locsize_serial(stIcsv(7:9), stIcsv(101:103), stIcsv(104:106), &
+          stIcsv(107:109), stIcsv(110:112), stIcsv(113:115))
+          ibdist = 1
           ibcatl = 1
-          return
-      endif
-      ! give the graph of grid cells and weighted by transmissibility between grid cells
-      call metis_api(0,rank,Ngcll, Ngedges, ivadj, iadjncy, detrans, nprocs, icdist)
-      ! 1, metis_recursive_bisection 
-      ! 0, metis_kway, keep contiguous of the partition 
+      else
+        ! give the graph of grid cells and weighted by transmissibility between grid cells
+        call metis_api(0,rank,Ngcll, Ngedges, ivadj, iadjncy, detrans, nprocs, icdist)
+        ! 1, metis_recursive_bisection 
+        ! 0, metis_kway, keep contiguous of the partition 
 
       ! based on the partition results, calculate the grid cells type
-      ! (inner|border|external) and count grid cells no. of different type
-      ! associate the local pointers to 'stIcsv'
-      call datpol_init_scalar_loc
-      ! calculate the grid cell type (inner|border|external) and count grid cells no.
-      call set_loc_size(deck, Ngcll, icdist, Ngedges, ivadj, iadjncy, detrans, &
-      iccatl, Nlninn, Nlnbrd, Nlnext)
+      ! (inner|border|external) 
+      ! count grid cells no. of different type.
+        call set_loc_clls_size(deck, Ngcll, icdist, Ngedges, ivadj, iadjncy, detrans, &
+        iccatl, Nlcinn, Nlcbrd, Nlcext, Nlcint, Nlncs)
+      endif
       end subroutine set_dist_clls
 ! PURPOSE:
 ! distribute all the blocks (grid cell + wellblock) into each processor,
@@ -328,7 +339,8 @@
 ! CSR-graph of well (Nwidx, Nlyid, ilyadj, icidly, dlywitrs)
       subroutine set_dist_blocks
       use stmapimts, only : metis_api
-      use stmgeomet, only : combine_cwll_adj, set_loc_size
+      use stmgeomet, only : combine_cwll_adj, set_locvert_cate, update_locvert_size, &
+      set_locsize_serial
       use stmvtkxml, only : prt_csr
       integer           :: negds
       integer, dimension(Ngidx+1)         :: xadj
@@ -344,25 +356,28 @@
       call prt_csr(FUNIT_OUT, Ngidx, negds, xadj, adjncy, adjwgt,"trans-wellindex", 1)
       
       if(nprocs == 1) then
-          ! associate the local pointers to global pointers position
-          call datpol_init_scalar_loc_serial
+          ! define the local as the global values
+          !call set_locsize_serial(stIcsv(7:9), stIcsv(101:103), stIcsv(104:106), &
+          !stIcsv(107:109), stIcsv(110:112), stIcsv(113:115))
+          ibdist = 1
           ibcatl = 1
-          return
-      endif
-      call metis_api(1,rank,Ngidx, negds, xadj, adjncy, adjwgt, nprocs, ibdist)
+      else
+        call metis_api(1,rank,Ngidx, negds, xadj, adjncy, adjwgt, nprocs, ibdist)
       ! 1, metis_recursive_bisection 
       ! 0, metis_kway, failed !!!
 
       ! based on the partition results, calculate the blocks type
       ! (inner|border|external) and count blocks no.
-      ! associate the local pointers to 'stIcsv'
-      call datpol_init_scalar_loc
-      ! calculate the blocks type (inner|border|external) and count blocks no.
-      call set_loc_size(deck, Ngidx, ibdist, negds, xadj, adjncy, adjwgt, ibcatl, &
-      Nlninn, Nlnbrd, Nlnext)
+      ! calculate the blocks type (inner|border|external) 
+        call set_locvert_cate(deck, Ngidx, ibdist, negds, xadj, adjncy, adjwgt, ibcatl)
+      endif
+      ! count cells & wells no.
+      call update_locvert_size(Ngcll, iccatl, Nlcinn, Nlcbrd, Nlcext, Nlcint, Nlncs) 
+      call update_locvert_size(Nwidx, iwcatl, Nlwinn, Nlwbrd, Nlwext, Nlwint, Nlnwls)
+      ! count blocks no.
+      call update_locvert_size(Ngidx, ibcatl, Nlbinn, Nlbbrd, Nlbext, Nlbint, Nlnbls)
 
       end subroutine set_dist_blocks
-
 ! PURPOSE:
 ! de-associate the pointers
 ! release the memory

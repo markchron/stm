@@ -61,9 +61,11 @@
       call dprt_arr(iwdist, Nwidx, "wellbore dist domain:")
       call dprt_arr(ibcatl, Ngidx, 'block type (inner|border|external)')
 
-      call prt_scalar(FUNIT_OUT, "local inner blocks", Nlninn)
-      call prt_scalar(FUNIT_OUT, "local border blocks", Nlnbrd)
-      call prt_scalar(FUNIT_OUT, "local external blocks", Nlnext)
+      call prt_mtx_wtitles_i(FUNIT_OUT, "partition local info - size",  &
+      3,5, RESHAPE(stIcsv(101:115), (/3,5/) ),                          &
+      (/" inner  ", " border ", "external", "internal", " local  "/),   &
+      (/"cell ", "well ", "block"/))
+!      call prt_scalar(FUNIT_OUT, "local external blocks", Nlbext)
       
 	  call dprt_arr(dcdx, Ngcll, "cell steps along X:")
 	  call dprt_arr(dcdy, Ngcll, "cell steps along Y:")

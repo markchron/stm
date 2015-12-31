@@ -1,11 +1,21 @@
       module stmgeomet
       use stmheader
       contains
-! count the local inner, border, external grid cells no. and
-! local internal(inner+border) cells no. local (internal +external)
-! cells no.
-      subroutine set_loc_size(deck, nvtxs, ddist, nadys, iadj, adjncy, &
-      adjwgt, ivcatl, ninn, nbrd, next)
+      
+! local variables equals to global variables if no domain partitioning
+      elemental subroutine set_locsize_serial(totln, ninn, nbrd, next, ninternal, nloc)
+      integer, intent(in)                   :: totln
+      integer, intent(out)                  :: ninn, nbrd, next
+      integer, intent(out)                  :: ninternal, nloc
+      nloc      = totln   ! local grid cells number = total
+      ninternal = totln
+      ninn      = totln ! inner
+      nbrd      = 0 ! border
+      next      = 0 ! external
+      end subroutine set_locsize_serial
+! count the local inner, border, external grid cells no.
+      subroutine set_loc_clls_size(deck, nvtxs, ddist, nadys, iadj, adjncy, &
+      adjwgt, ivcatl, ninn, nbrd, next,ninternal, nloc)
       integer, intent(in)                   :: deck
       integer, intent(in)                   :: nvtxs
       integer, dimension(nvtxs), intent(in) :: ddist
@@ -15,12 +25,25 @@
       real(STDD), dimension(nadys), intent(in)  :: adjwgt
       integer, dimension(nvtxs), intent(out)    :: ivcatl
       integer, intent(out)                  :: ninn, nbrd, next
-      call set_loc_clls_cate(deck, nvtxs, ddist, nadys, iadj, adjncy, &
+      integer, intent(out)                  :: ninternal, nloc
+      call set_locvert_cate(deck, nvtxs, ddist, nadys, iadj, adjncy, &
       adjwgt, ivcatl)
-      call update_loc_clls_size(nvtxs, ivcatl, ninn, nbrd, next)
-      end subroutine set_loc_size
+      call update_locvert_size(nvtxs, ivcatl, ninn, nbrd, next,      &
+      ninternal, nloc)
+      end subroutine set_loc_clls_size
 ! counts no.
-      subroutine update_loc_clls_size(nvtxs, ivcatl, ninn, nbrd, next)
+      subroutine update_locvert_size(nvtxs, ivcatl, ninn, nbrd, next, & 
+      ninternal, nloc)
+      integer, intent(in)                   :: nvtxs
+      integer, dimension(nvtxs), intent(in) :: ivcatl
+      integer, intent(out)                  :: ninn, nbrd, next
+      integer, intent(out)                  :: ninternal, nloc
+      call set_locvert_size(nvtxs, ivcatl, ninn, nbrd, next)
+      ninternal = ninn + nbrd
+      nloc      = ninternal + next
+      end subroutine update_locvert_size
+! count the local inner, border, external grid cells no.
+      subroutine set_locvert_size(nvtxs, ivcatl, ninn, nbrd, next)
       integer, intent(in)                   :: nvtxs
       integer, dimension(nvtxs), intent(in) :: ivcatl
       integer, intent(out)                  :: ninn, nbrd, next
@@ -44,9 +67,9 @@
       ninn = iarr(1) 
       nbrd = iarr(2) 
       next = iarr(3)
-      end subroutine update_loc_clls_size
+      end subroutine set_locvert_size
 ! calculate the block category based on local subdeck
-      subroutine set_loc_clls_cate(deck, nvtxs, ddist, nadys,        &
+      subroutine set_locvert_cate(deck, nvtxs, ddist, nadys,        &
       iadj, adjncy, adjwgt, ivcatl)
       integer, intent(in)                   :: deck
       integer, intent(in)                   :: nvtxs
@@ -81,7 +104,7 @@
 !$OMP END DO
 !$OMP FLUSH(ivcatl)
 !$OMP END PARALLEL
-      end subroutine set_loc_clls_cate
+      end subroutine set_locvert_cate
 ! calculate the global connections number in the whole region
 ! (1:nx,1:ny,1:nz)
       subroutine no_totl_connections(nx,ny,nz, forn, num)

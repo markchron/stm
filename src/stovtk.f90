@@ -39,6 +39,18 @@
       write(schar, '(I20)') sps
       lfmt ="(T"//trim(ADJUSTL(schar))//","//trim(ADJUSTL(nchar))//"("//trim(vfmt)//",1x))"
       end subroutine dynlfmtspcs
+! set up dynamic line format with title name ahead
+! tfmt, specifies the title string fmt
+      subroutine dynlfmttit(lfmt, tfmt, n, vfmt)
+      character(*), intent(out)             :: lfmt
+      character(*), intent(in)              :: tfmt
+      integer, intent(in)                   :: n
+      character(*), intent(in)              :: vfmt
+      
+      character(20) :: nchar
+      write(nchar, '(I20)') n
+      lfmt = "("//trim(tfmt)//","//trim(ADJUSTL(nchar))//"("//trim(vfmt)//",1x))"
+      end subroutine dynlfmttit
 ! PURPOSE:
 ! print out a CSR format matrix
       subroutine prt_mtx_csr_d(funit, n, nnz, ai, aj, a, vfmt)
@@ -162,17 +174,36 @@
 !         if ( i > 0 ) write(FUNIT, lfmt) arr(ni*npl + 1 : n)
 !      end select
 !      end subroutine prt_arr
-     subroutine prt_scalar(funit, msg, var)
-     integer, intent(in)            :: funit
-     character(*), intent(in)       :: msg
-     class(*), intent(in)           :: var
-     select type (var)
-     type is (integer) 
+      subroutine prt_scalar(funit, msg, var)
+      integer, intent(in)            :: funit
+      character(*), intent(in)       :: msg
+      class(*), intent(in)           :: var
+      select type (var)
+      type is (integer) 
          write(funit, '(T2,A,":",T42,I6)') msg, var
-     type is(real(STDD))
+      type is(real(STDD))
          write(funit, '(T2,A,":",T42,ES9.2)') msg, var
-     end select
-     end subroutine prt_scalar
-    
+      end select
+      end subroutine prt_scalar
+! print out matrix with column and row titles
+! Note: the matrix is printed out column by column since Fortran stores matrix
+! in column-major
+      subroutine prt_mtx_wtitles_i(funit, amsg, m,n, mtx, colt, rowt)
+      integer, intent(in)                   :: funit
+      character(*), intent(in)              :: amsg
+      integer, intent(in)                   :: m,n
+      integer, dimension(m, n), intent(in)  :: mtx
+      character(*), dimension(n), intent(in) :: colt
+      character(*), dimension(m), intent(in) :: rowt
+      integer       :: c 
+      character(BUF_LEN) lfmt
+      write(funit, '(A)') amsg
+      call dynlfmtspcs(lfmt, m, 'A12', 12)
+      write(funit, lfmt) rowt
+      call dynlfmttit(lfmt, 'A10,2x', n, 'I12')
+      do c = 1, n
+        write(funit, lfmt) colt(c), mtx(:, c)
+      enddo
 
+      end subroutine prt_mtx_wtitles_i
       end module stmvtkxml
