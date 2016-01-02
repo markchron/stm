@@ -20,7 +20,6 @@
       Npidx = 3 ! phases no.
       Nevents = 5
 	  call npt_update
-	  call datpol_init_vect
       end subroutine npt_init
 ! update the data size related info 
 	  subroutine npt_update

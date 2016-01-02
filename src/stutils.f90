@@ -32,6 +32,8 @@
       call datpol_init_scalar
 	  ! define the controlling variables 
 	  call npt_init
+      ! asks for memory
+      call datpol_init_memo
 	  end subroutine st_init_memo
 
 	  subroutine st_reservoir_init
@@ -45,6 +47,8 @@
 ! distribute the problem between processors by distribute grid cells
       subroutine st_dist
       call set_partition_dist
+      ! master processor collects the local information
+      call pmpi_master_collect_i(stIcsv(110:115), 6, nprocs,  pmInmas)
       end subroutine st_dist
 ! PURPOSE:
 ! terminate the parallel program

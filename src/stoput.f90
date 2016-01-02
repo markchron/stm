@@ -49,6 +49,7 @@
 ! PURPOSE:
 ! simply print out the array data  >> stdout
       subroutine dprt_datpol
+      integer :: i
 	  character(BUF_LEN) 					:: lfmt
       call setupfmt
       call dprt_csr(Ngcll, Ngedges, ivadj, iadjncy, detrans, "transmissibility", 1)
@@ -65,6 +66,12 @@
       3,5, RESHAPE(stIcsv(101:115), (/3,5/) ),                          &
       (/" inner  ", " border ", "external", "internal", " local  "/),   &
       (/"cell ", "well ", "block"/))
+      if(rank==MASTER) call prt_mtx_wtitles_i(FUNIT_OUT,                & 
+      "master-collects local info - size",                              &
+      nprocs, 6, RESHAPE(pmInmas, (/nprocs, 6/)),                       &
+      (/"updcll", "updwll", "updblk", "locell", "locwll", "locblk" /),  &
+      (/( "proc"//char( ichar('0')+i ), i=1, nprocs )/)                 &
+      )
 !      call prt_scalar(FUNIT_OUT, "local external blocks", Nlbext)
       
 	  call dprt_arr(dcdx, Ngcll, "cell steps along X:")

@@ -194,4 +194,26 @@
       enddo
       bp(1) = 1
       end subroutine csr2csc
+! add up the array with the previous entries, each entry has same weigth
+      subroutine nums2displs_i(n, nums, displs)
+      integer, intent(in)                   :: n
+      integer, dimension(n), intent(in)     :: nums
+      integer, dimension(n), intent(out)     :: displs
+      integer    :: l
+      displs(1) = 0
+      forall (l = 1 : n-1)
+      displs(l+1) = displs(l) + nums(l)
+      end forall
+      end subroutine nums2displs_i
+      subroutine nums2displs_d(n, nums, displs)
+      integer, intent(in)                      :: n
+      real(STDD), dimension(n), intent(in)     :: nums
+      real(STDD), dimension(n), intent(out)     :: displs
+      integer    :: l
+      displs(1) = 0.d0
+      forall (l = 1 : n-1)
+      displs(l+1) = displs(l) + nums(l)
+      end forall
+      end subroutine nums2displs_d
+
       end module stmheader
