@@ -11,18 +11,7 @@
       !     to take the outgoing data to process
       contains
 ! collects the size related info
-      subroutine pmpi_master_collec(ncll, nwll, nblk, n, acll, awll, ablk)
-      integer, intent(in)                   :: ncll, nwll, nblk
-      integer, intent(in)                   :: n
-      integer, dimension(n), intent(out)    :: acll
-      integer, dimension(n), intent(out)    :: awll
-      integer, dimension(n), intent(out)    :: ablk
-      call MPI_GATHER(ncll, 1, MPI_INTEGER, acll, 1, MPI_INTEGER, MASTER,  MPI_COMM_WORLD, err)
-      call MPI_GATHER(nwll, 1, MPI_INTEGER, awll, 1, MPI_INTEGER, MASTER,  MPI_COMM_WORLD, err)
-      call MPI_GATHER(nblk, 1, MPI_INTEGER, ablk, 1, MPI_INTEGER, MASTER,  MPI_COMM_WORLD, err)
-      end subroutine pmpi_master_collec
-      
-      subroutine pmpi_master_collect_i(larr,n, nprocs, arr)
+      subroutine pmpi_master_gather_i(larr,n, nprocs, arr)
       integer, intent(in)                           :: n
       integer, dimension(n),intent(in)              :: larr
       integer, intent(in)                           :: nprocs
@@ -32,7 +21,8 @@
       !coarse grain communication
       call MPI_GATHER(larr, n, MPI_INTEGER, temp, n, MPI_INTEGER, MASTER,  MPI_COMM_WORLD, err)
       arr = RESHAPE( transpose( reshape(temp, (/n,nprocs/)) ), shape(arr) )
-      end subroutine pmpi_master_collect_i
+      end subroutine pmpi_master_gather_i
+
       
 ! broadcast the file name from master to all
 ! * file name

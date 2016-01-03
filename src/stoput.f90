@@ -83,6 +83,13 @@
 	  call dprt_arr(dcpermi, Ngcll, "Permeability I (mD)")
 	  call dprt_arr(dcpermj, Ngcll, "Permeability J:")
 	  call dprt_arr(dcpermk, Ngcll, "Permeability K:")
+
+      call dprt_arr(iclcid, Ngcll, "local id at subdeck-"//char(deck+ichar('0')) )
+      call dprt_arr(icgid, Nlncs, "global ids of subdeck-"//char(deck+ichar('0')) )
+      call dprt_arr_mask_i(icdist, Ngcll, iclcid>0, Nlncs,  &
+      "cells@global at subdeck from where")
+      call dprt_arr_select_i(icdist, Ngcll, icgid, Nlncs,  &
+      "cells@local at subdeck from where")
       
       end subroutine dprt_datpol
 ! set up the output format of each line	  
@@ -125,6 +132,36 @@
           call prt_arr_d(FUNIT_OUT, arr, n, linefmt(2), novapl(2))
       endif
       end subroutine dprt_arr_d
+! PURPOSE:
+! print out array at selected index
+      subroutine dprt_arr_select_i(arr, n, sidx, m, amsg, sci)
+      character(*), intent(in)              :: amsg
+      integer, intent(in)                   :: n
+      integer, dimension(n), intent(in)     :: arr
+      integer, intent(in)                   :: m
+      integer, dimension(m), intent(in)     :: sidx
+      integer, optional, intent(in)         :: sci
+
+      integer, dimension(m) :: temp
+      integer :: i
+      forall(i=1:m)
+        temp(i) = arr(sidx(i))
+      end forall
+      call dprt_arr_i(temp, m, amsg, sci)
+      end subroutine dprt_arr_select_i
+
+      subroutine dprt_arr_mask_i(arr, n, smask, m, amsg, sci)
+      character(*), intent(in)              :: amsg
+      integer, intent(in)                   :: n
+      integer, dimension(n), intent(in)     :: arr
+      logical, dimension(n), intent(in)     :: smask
+      integer, intent(in)                   :: m
+      integer, optional, intent(in)         :: sci
+
+      integer, dimension(m) :: temp
+      temp = pack(arr, smask)
+      call dprt_arr_i(temp, m, amsg, sci)
+      end subroutine dprt_arr_mask_i
 
 ! print out a CSR format matrix
 ! input:

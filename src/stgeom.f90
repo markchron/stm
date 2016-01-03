@@ -42,6 +42,121 @@
       ninternal = ninn + nbrd
       nloc      = ninternal + next
       end subroutine update_locvert_size
+! set up local index by the sequence, & external vertex is re-sorted by
+! its subdeck
+! input:
+! nvg, global vertex no.
+! ivcatl, vertex category based on local subdeck
+! dist,   vertex distributed subdeck
+! ninn,   local inner vertex no.
+! nbrd,   local border vertex no.
+! nvl,  local vertex no.
+! output:
+! ivlid(nvg): the local index of a given global order (natural order)
+! ivgid(nvl): the natural index of a given local order (inner/border/external)
+      subroutine set_locid(nvg,ivcatl, dist, ninn, nbrd, next,      &
+      ivlid, nvl, ivgid)
+      integer, intent(in)                   :: nvg
+      integer, dimension(nvg), intent(in)   :: ivcatl
+      integer, dimension(nvg), intent(in)   :: dist
+      integer, intent(in)                   :: ninn, nbrd, next
+      integer, dimension(nvg), intent(out)  :: ivlid
+      integer, intent(in)                   :: nvl
+      integer, dimension(nvl), intent(out)  :: ivgid
+
+      integer :: off(4)
+      call nums2displs_i(4, (/ninn, nbrd, next, 0/), off)
+      call set_locid_raw(nvg,ivcatl, off(1:3), ivlid, nvl, ivgid)
+      if(next>0) call sort_locid_ext(next, ivgid(off(3)+1: off(4)), nvg, dist, ivlid)
+      end subroutine set_locid
+! set up the local index by the sequence (inner, border, external) 
+      subroutine set_locid_raw(nvg, ivcatl, disp, ivlid, nvl, ivgid)
+      integer, intent(in)                   :: nvg
+      integer, dimension(nvg), intent(in)   :: ivcatl
+      integer, dimension(3), intent(in)     :: disp
+      integer, dimension(nvg), intent(out)   :: ivlid
+      integer, intent(in)                   :: nvl
+      integer, dimension(nvl), intent(out)   :: ivgid
+      integer :: h, off(3)
+      off = disp
+
+      do h = 1, nvg
+        select case(ivcatl(h))
+        case (1) ! inner
+            off(1)          = off(1) + 1
+            ivlid(h)        = off(1)
+            ivgid(off(1))   = h
+        case (2) ! border
+            off(2)          = off(2) + 1
+            ivlid(h)        = off(2)
+            ivgid(off(2))   = h
+        case (3) ! external
+            off(3)          = off(3) + 1
+            ivlid(h)        = off(3)
+            ivgid(off(3))   = h
+        case (0) ! not on current subdeck
+            ivlid(h)        = 0
+        end select
+      enddo
+      end subroutine set_locid_raw
+! sort the external vertex sequence according to where(which subdeck) it comes from.
+! then, the external blocks are stored contiguously
+! insertion sort
+! note: ivgid(next) only the external parts are passed in & out
+! ivgid(next) stores the natural index of external vertex subdeck by subdeck
+      subroutine sort_locid_ext(next, ivgid, nvg, dist, ivlid)
+      integer, intent(in)                       :: next
+      integer, dimension(next), intent(inout)   :: ivgid
+      integer, intent(in)                       :: nvg
+      integer, dimension(nvg), intent(in)       :: dist
+      integer, dimension(nvg), intent(inout)    :: ivlid
+
+      integer :: i,j,iptr
+      integer :: temp
+      do i = 1, next - 1
+        iptr = i
+        do j = i + 1, next
+            if( dist(ivgid(j)) < dist(ivgid(iptr)) ) then
+                iptr = j
+
+                temp            = ivlid( ivgid(i) )
+                ivlid(ivgid(i)) = ivlid(ivgid(iptr))
+                ivlid(ivgid(iptr)) = temp
+
+                temp        = ivgid(i)
+                ivgid(i)    = ivgid(iptr)
+                ivgid(iptr) = temp
+                
+                exit
+            endif ! swap
+        enddo ! j
+      enddo ! i
+      end subroutine sort_locid_ext
+! external vertex number and displs from different adjacent subdecks
+      subroutine set_numdisp_extofadjdeck(nvg, dist, ivcatl, ndeck, num, displ)
+      integer, intent(in)                   :: nvg
+      integer, dimension(nvg), intent(in)   :: dist
+      integer, dimension(nvg), intent(in)   :: ivcatl
+      integer, intent(in)                   :: ndeck
+      integer, dimension(ndeck), intent(out):: num
+      integer, dimension(ndeck), intent(out):: displ
+      call set_num_extofadjdeck(nvg,dist,ivcatl, ndeck, num)
+      call nums2displs_i(ndeck,num,displ)
+      end subroutine set_numdisp_extofadjdeck
+! cout the external vertex number from different adjacent subdecks
+      subroutine set_num_extofadjdeck(nvg, dist, ivcatl, ndeck, numext)
+      integer, intent(in)                   :: nvg
+      integer, dimension(nvg), intent(in)   :: dist
+      integer, dimension(nvg), intent(in)   :: ivcatl
+      integer, intent(in)                   :: ndeck
+      integer, dimension(ndeck), intent(out):: numext
+
+      integer :: h
+      numext = 0
+      forall(h=1:nvg, ivcatl(h) == 3) 
+        numext(dist(h)) = numext(dist(h)) + 1
+      end forall
+      end subroutine set_num_extofadjdeck
 ! count the local inner, border, external grid cells no.
       subroutine set_locvert_size(nvtxs, ivcatl, ninn, nbrd, next)
       integer, intent(in)                   :: nvtxs
@@ -69,6 +184,12 @@
       next = iarr(3)
       end subroutine set_locvert_size
 ! calculate the block category based on local subdeck
+!   * 0, not on current subdeck
+!   * 1, inner 
+!   * 2, border
+!   * 3, external
+!   * 1:2 internal
+!   * 1:3 local
       subroutine set_locvert_cate(deck, nvtxs, ddist, nadys,        &
       iadj, adjncy, adjwgt, ivcatl)
       integer, intent(in)                   :: deck

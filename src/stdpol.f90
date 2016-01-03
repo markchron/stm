@@ -47,11 +47,11 @@
 	  integer 										:: szIdp, ofstIdp
       integer, dimension(:), allocatable, target    :: stIgvs
       integer, dimension(:), pointer                :: ictind, icsecd, icgcat,&
-      icdist, iccatl, &
-      iwdist, iwdir, iwcatl, &
+      icdist, iccatl, iclcid, &
+      iwdist, iwdir, iwcatl, iwlcid, &
       ixly, iyly, izly, ialy, icidly, &
       ivadj, ilyadj, iadjncy, &
-      ibdist, ibcatl
+      ibdist, ibcatl, iblcid
 	  ! ictind(Ngcll), integer, grid cell type index
 	  ! 						normall type - all included in calculation
 	  ! 						in-active 
@@ -80,6 +80,11 @@
       ! ilyadj(Nwidx+1) : perforated layers index of each well into perforated 
       ! layers info
       ! 
+      ! iblcid(Ngidx), integer, local index (inner/border/external) of all the
+      ! blocks on current subdeck
+      ! iclcid(Ngcll),  cells
+      ! iwlcid(Nwidx),  wells
+      ! 
 	  ! stDgvs(szDdp), double data pool; so far, only stDgvs(1:ofstDp) was
 	  ! associated with pointers
 	  integer 										:: szDdp, ofstDp
@@ -99,8 +104,6 @@
       ! dlywitherm    :               - heat conduction
 
       ! devnts(Events), date|events info.
-
-
       !--------------------------------------------------------------------
       ! mpi datpol
       !--------------------------------------------------------------------
@@ -108,8 +111,9 @@
       integer                                    :: pmofIc
       integer, dimension(:), allocatable, target :: pmIcsv
       ! pmIcsv(:), Parallel Message passing Integer Control System Vector
-      integer, dimension(:), pointer            :: pmInmas, &
-      pmInupcl, pmInupwl, pmInupbk, pmInlcll, pmInlwll, pmInlblk
+      integer, dimension(:), pointer            ::  pmInec, pmIdisec, &
+      pmInew, pmIdisew,  &
+      pmInmas, pmInupcl, pmInupwl, pmInupbk, pmInlcll, pmInlwll, pmInlblk
       ! pmInmas(6*nprocs), includes the following parts
       ! pmInupcl(nprocs)        :: internal cells
       ! pmInupwl(nprocs)        :: internal wells
@@ -117,7 +121,32 @@
       ! pmInlcll(nprocs)        :: local cells no. of each subdeck
       ! pmInlwll(nprocs)        :: local wells no. of each subdeck
       ! pmInlblk(nprocs)        :: local blocks no. 
-	  contains
+      !--------------------------------------------------------------------
+      ! local datapool
+      !--------------------------------------------------------------------
+      integer                                       :: szIloc, ofIloc
+      integer, dimension(:), allocatable, target    :: dpIloc
+      integer, dimension(:), pointer                :: ibgid, icgid, iwgid
+      ! ibgid, block natural order
+      ! icgid, cell natural order
+      ! iwgid, well natural order
+      
+      
+      contains
+! set up the all2all index
+      subroutine set_exchange_index
+      use stmgeomet, only : set_locid, set_numdisp_extofadjdeck
+      ! order the local vertex
+      ! *cell
+      call set_locid(Ngcll, iccatl, icdist, Nlcinn, Nlcbrd, Nlcext, & 
+      iclcid, Nlncs, icgid) 
+      call set_numdisp_extofadjdeck(Ngcll, icdist, iccatl, nprocs, pmInec, pmIdisec)
+      ! *well
+      call set_locid(Nwidx, iwcatl, iwdist, Nlwinn, Nlwbrd, Nlwext, &
+      iwlcid, Nlnwls, iwgid)
+      call set_numdisp_extofadjdeck(Nwidx, iwdist, iwcatl, nprocs, pmInew, pmIdisew)
+
+      end subroutine set_exchange_index
 ! initialize the scalar pointers to the global datapool.
 	  subroutine datpol_init_scalar
       Nxd => 	stIcsv(1) 	! Nxd, N in x
@@ -141,7 +170,7 @@
 	  						! default, field units
       Nevents => stIcsv(17)  ! total events no.
 
-      ofstIdp = 0; ofstDp = 0; pmofIc = 0
+      ofstIdp = 0; ofstDp = 0; pmofIc = 0; ofIloc = 0
       fnstec = 0; metric = 0
       end subroutine datpol_init_scalar
 ! PURPOSE:
@@ -182,8 +211,8 @@
 	  ! call numofconnects 
       mxEdges = estimate_no_connects(fnstec, Ngcll)
       ! properties on global grid cells			  
-	  szIdp = Ngcll*5           &
-      + Nwidx * 3               &
+	  szIdp = Ngcll*6           &
+      + Nwidx * 4               &
       + Nlyid * 5               &
       + Ngcll+1 + Nwidx+1       &
       + mxEdges 
@@ -211,6 +240,10 @@
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ivadj, Ngcll + 1)
 	  call setptr_i(stIgvs, szIdp, ofstIdp, ilyadj, Nwidx+1)
 	  !call setptr_i(stIgvs, szIdp, ofstIdp, iadjncy, Ngedges)
+
+      call assoptr_i(stIgvs, szIdp, ofstIdp, iblcid, Ngidx)
+      call setptr_i(stIgvs, szIdp, ofstIdp, iclcid, Ngcll)
+      call setptr_i(stIgvs, szIdp, ofstIdp, iwlcid, Nwidx)
 
       szDdp = Ngcll * 10            &
       + Nwidx * 3                   &
@@ -400,10 +433,26 @@
       call update_locvert_size(Ngidx, ibcatl, Nlbinn, Nlbbrd, Nlbext, Nlbint, Nlnbls)
 
       end subroutine set_dist_blocks
+! after get the size of local cells/wells/blocks on current subdeck
+      subroutine datpol_init_vect_loc
+      szIloc = Nlncs + Nlnwls
+      call palloc_i(dpIloc, szIloc, stErrs(15))
+      call assoptr_i(dpIloc, szIloc, ofIloc, ibgid, Nlnbls)
+      call setptr_i(dpIloc, szIloc, ofIloc, icgid, Nlncs)
+      call setptr_i(dpIloc, szIloc, ofIloc, iwgid, Nlnwls)
+
+      end subroutine datpol_init_vect_loc
 ! after get subdomains number, initialize the vectors relate to communication
       subroutine pmpi_init_vect
       !if master processor
       if(rank /= MASTER) then
+          pmnics = 4*nprocs
+          call palloc_i(pmIcsv, pmnIcs, stErrs(13))
+          call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInec, nprocs)
+          call setptr_i(pmIcsv, pmnIcs, pmofIc, pmIdisec, nprocs)
+          call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInew, nprocs)
+          call setptr_i(pmIcsv, pmnIcs, pmofIc, pmIdisew, nprocs)
+        
           ! must associate 'pmInmas' with a memory, otherwise, the following
           ! subroutine pmpi_master_collect_i, will has an dummy parameter
           ! undefine. 
@@ -412,8 +461,14 @@
           call assoptr_i(stIgvs, szIdp, 0, pmInmas, 6*nprocs)
           return
       endif
-      pmnIcs = 6 * nprocs
+      pmnIcs = nprocs * 10
       call palloc_i( pmIcsv, pmnIcs, stErrs(13))
+      
+      call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInec, nprocs)
+      call setptr_i(pmIcsv, pmnIcs, pmofIc, pmIdisec, nprocs)
+      call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInew, nprocs)
+      call setptr_i(pmIcsv, pmnIcs, pmofIc, pmIdisew, nprocs)
+
       call assoptr_i( pmIcsv,  pmnIcs, pmofIc, pmInmas, 6*nprocs)
       call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInupcl, nprocs)
       call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInupwl, nprocs)
@@ -430,6 +485,7 @@
       subroutine datpol_free
 
       call pmpi_free
+      NULLIFY(iblcid, iclcid, iwlcid)
 
       NULLIFY(ictind, icsecd, icgcat, icdist, iccatl)
       NULLIFY(iwdist, iwdir, iwcatl)
@@ -447,18 +503,29 @@
 
       deallocate(stDgvs, STAT = stErrs(11))
       deallocate(stIgvs, STAT = stErrs(12))
+
+      call datpol_free_loc
       end subroutine datpol_free
 ! PURPOSE:
 ! mpi related memo.
       subroutine pmpi_free
       if(rank /= MASTER) then
+          NULLIFY(pmInec, pmIdisec, pmInew, pmIdisew)
           NULLIFY(pmInmas)
+          
+          deallocate(dpIloc, STAT=stErrs(16))
           return
       endif
+      NULLIFY(pmInec, pmIdisec, pmInew, pmIdisew)
+
       NULLIFY(pmInmas, pmInlcll, pmInlwll, pmInlblk)
       NULLIFY(pmInupcl, pmInupwl, pmInupbk)
       deallocate(pmIcsv, STAT = stErrs(14))
       end subroutine pmpi_free
+      subroutine datpol_free_loc
+      NULLIFY(ibgid, icgid, iwgid)
+      deallocate(dpIloc, STAT=stErrs(16))
+      end subroutine datpol_free_loc
 ! count the maximum columns no. for CSR matrix
       pure integer function maxcol_csr(n, ai)
       integer, intent(in)           :: n

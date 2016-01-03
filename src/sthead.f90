@@ -201,9 +201,9 @@
       integer, dimension(n), intent(out)     :: displs
       integer    :: l
       displs(1) = 0
-      forall (l = 1 : n-1)
+      do l = 1, n-1
       displs(l+1) = displs(l) + nums(l)
-      end forall
+      enddo
       end subroutine nums2displs_i
       subroutine nums2displs_d(n, nums, displs)
       integer, intent(in)                      :: n
@@ -211,9 +211,9 @@
       real(STDD), dimension(n), intent(out)     :: displs
       integer    :: l
       displs(1) = 0.d0
-      forall (l = 1 : n-1)
+      do l = 1, n-1
       displs(l+1) = displs(l) + nums(l)
-      end forall
+      enddo
       end subroutine nums2displs_d
 
       end module stmheader

@@ -47,8 +47,13 @@
 ! distribute the problem between processors by distribute grid cells
       subroutine st_dist
       call set_partition_dist
+
+      ! after get the local vertex size, initial the local memory
+      call datpol_init_vect_loc
       ! master processor collects the local information
-      call pmpi_master_collect_i(stIcsv(110:115), 6, nprocs,  pmInmas)
+      call pmpi_master_gather_i(stIcsv(110:115), 6, nprocs,  pmInmas)
+      call set_exchange_index
+
       end subroutine st_dist
 ! PURPOSE:
 ! terminate the parallel program
