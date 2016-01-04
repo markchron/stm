@@ -12,7 +12,7 @@ CMake is a tool that makes cross-platform building simple. On several systems it
 \item Right-click on the Command Prompt (cmd.exe) icon and click "Run as admistrator"
 \item Change directories to the location of the .msi file you just downloaded
 \item Execute the .msi file by entering it's name on the command prompt.
-\item You may be prompted with a security messgae from windows, continue (install path C:\Program Files (x86)\Microsoft SDKs)
+\item You may be prompted with a security messgae from windows, continue (install path C:\textbackslash Program Files (x86)\textbackslash Microsoft SDKs)
 \item Make sure to remember the "authentication passphrase for smpd".  You must have this to run a program with mpich.
 \end{enumerate} 
  NOTE: If you have problems with installing MPICH2 or running it, you may need to lower the "User Account Control" settings on Windows 7.  You can do so by doing the following:
@@ -22,7 +22,11 @@ CMake is a tool that makes cross-platform building simple. On several systems it
 \item You can lower the slider to the bottom to reduce the security level of Windows 7.
 \item Install MPICH
 \item Reset the security level back to what it was before. \end{itemize}
-
+\subsection{CMake-Config}
+\url{https://cmake.org/Wiki/CMake:How_To_Find_Libraries}
+\paragraph{Cmake module path} \begin{lstlisting}[language=sh]
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+\end{lstlisting}
 \subsection{Configure with CMake}
 \begin{enumerate}
 \item Use CMakeSetup from the CMake install location.
@@ -42,23 +46,23 @@ To set the value of a variable, click on that value. \begin{itemize}
 \item If it is file or directory, an ellipsis button will appear ("...") on the far right of the entry. Clicking this button will bring up the file or directory selection dialog.
 \item If it is a string, it will become an editable string. \end{itemize}
 
-\paragraph{Can not find MPI_Fortran_INCLUDE_PATH and MPI_Fortran_LIBRARIES} 
+\paragraph{Can not find MPI\_Fortran\_INCLUDE\_PATH and MPI\_Fortran\_LIBRARIES} 
 \paragraph{Sol.} Choose Release version. And set up these two variables in 'Advanced' section, 
-MPI_Fortran_INCLUDE_PATH = C:\Program Files (x86)\Microsoft SDKs\MPI\Include;C:\Program Files (x86)\Microsoft SDKs\MPI\Include\x86 
-MPI_Fortran_LIBRARIES = C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpi.lib;C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpifec.lib;C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpifes.lib;C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpifmc.lib;C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86\msmpifms.lib
+MPI\_Fortran\_INCLUDE\_PATH = C:\textbackslash Program Files (x86)\textbackslash Microsoft SDKs\textbackslash MPI\textbackslash Include;C:\textbackslash Program Files (x86)\textbackslash Microsoft SDKs\textbackslash MPI\textbackslash Include\textbackslash x86 
+MPI\_Fortran\_LIBRARIES = C:\textbackslash Program Files (x86)\textbackslash Microsoft SDKs\textbackslash MPI\textbackslash Lib\textbackslash x86\textbackslash msmpi.lib;C:\textbackslash Program Files (x86)\textbackslash Microsoft SDKs\textbackslash MPI\textbackslash Lib\textbackslash x86\textbackslash msmpifec.lib;C:\textbackslash Program Files (x86)\textbackslash Microsoft SDKs\textbackslash MPI\textbackslash Lib\textbackslash x86\textbackslash msmpifes.lib;C:\textbackslash Program Files (x86)\textbackslash Microsoft SDKs\textbackslash MPI\textbackslash Lib\textbackslash x86\textbackslash msmpifmc.lib;C:\textbackslash Program Files (x86)\textbackslash Microsoft SDKs\textbackslash MPI\textbackslash Lib\textbackslash x86\textbackslash msmpifms.lib
 
 \subsection{Build by VS2010}
 \begin{enumerate}
 \item CMake will now create Visual Studio project files{\bf *.sln}.
-\item You should now be able to open the ParaView project (or workspace) file. Build the project (F7) or ALL_BUILD target. \end{enumerate}
+\item You should now be able to open the ParaView project (or workspace) file. Build the project (F7) or ALL\_BUILD target. \end{enumerate}
 Find the executable file in ~/build/bin/Debug/*.exe
 
 
-NOTE: reference on \url{http://www.paraview.org/Wiki/ParaView:Build_And_Install}
+NOTE: reference on \url{http://www.paraview.org/Wiki/ParaView:Build\_And\_Install}
 
 \subsection{Error with running exe file}
 \paragraph{ Entry Point Not Found }
-\paragraph{Sol.} This issue may occur if you replaced the Msvcrt.dll file with a third-party version that does not contain the _resetstkoflw (recovery from stack overflow) function.
+\paragraph{Sol.} This issue may occur if you replaced the Msvcrt.dll file with a third-party version that does not contain the \_resetstkoflw (recovery from stack overflow) function.
  
 Run the SFC (System File Checker) scan on the computer to fix the system file errors on the computer.
 To run SFC scan, follow the steps:
