@@ -16,6 +16,7 @@ add_test(NAME spe4b
 	)
 
 do_mpi_test(spe4b.dat 2)
+do_mpi_test(spe4b.dat 3)
 
 add_test(NAME wll
 	COMMAND ${PROJECT_BINARY_DIR}/bin/TestWll

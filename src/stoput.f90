@@ -73,6 +73,8 @@
       (/( "proc"//char( ichar('0')+i ), i=1, nprocs )/)                 &
       )
 !      call prt_scalar(FUNIT_OUT, "local external blocks", Nlbext)
+      if(rank == MASTER) call dprt_arr(iscmasgid, nscmast,               &
+      "scattered global index from master")
       
 	  call dprt_arr(dcdx, Ngcll, "cell steps along X:")
 	  call dprt_arr(dcdy, Ngcll, "cell steps along Y:")
@@ -90,6 +92,8 @@
       "cells@global at subdeck from where")
       call dprt_arr_select_i(icdist, Ngcll, icgid, Nlncs,  &
       "cells@local at subdeck from where")
+      call dprt_arr(icsdcgid, nsdcll, "send out cells global index")
+      call dprt_arr(icsdclid, nsdcll, "send out cells local index")
       
       end subroutine dprt_datpol
 ! set up the output format of each line	  

@@ -52,8 +52,29 @@
       call datpol_init_vect_loc
       ! master processor collects the local information
       call pmpi_master_gather_i(stIcsv(110:115), 6, nprocs,  pmInmas)
+      ! local cells|wells are relabeled by inner/border/external sequence, the
+      ! global (natural order) are stored, and also the whole domain is set the
+      ! new local index, 0 if the cell/well is not in current subdeck
       call set_exchange_index
-
+      ! exchange external cells number from each subdeck. External cells number
+      ! gives the sendout cells number.
+      call pmpi_all_exchange_i(nprocs, pmInec, 1, pmInsdc,  1)
+      call nums2displs_i(nprocs, pmInsdc, pmIdisdc)
+      ! ask for memory to store the scatter|all2all index
+      call pmpi_init_comm
+      ! scatter the internal cells
+      if(rank == MASTER) call nums2displs_i(nprocs, pmInupcl, pmImasc)
+      ! gather the global index distributed in different processor
+      ! Notes: gather the global (natural) index from each processor, since the
+      ! scatter/gather buffer requires the memory is contiguous for each
+      ! processor. This 'iscmasgid' is used to assemble the scatter buffer
+      call pmpi_master_gatherv_i(Nlcint, icgid, Nlcint, nscmast, iscmasgid,&
+      nprocs, pmInupcl, pmImasc)
+      ! get the global (natural) order of the sendout cells
+      call pmpi_all_exchangev_i(Nlcext, icextgid, nprocs, pmInec, pmIdisec,&
+      nsdcll, icsdcgid, pmInsdc, pmIdisdc)
+      ! local index of the sendout cells
+      icsdclid = cg2lid(icsdcgid)
       end subroutine st_dist
 ! PURPOSE:
 ! terminate the parallel program

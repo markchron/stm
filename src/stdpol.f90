@@ -112,8 +112,14 @@
       integer, dimension(:), allocatable, target :: pmIcsv
       ! pmIcsv(:), Parallel Message passing Integer Control System Vector
       integer, dimension(:), pointer            ::  pmInec, pmIdisec, &
-      pmInew, pmIdisew,  &
+      pmInew, pmIdisew, pmInsdc, pmIdisdc, pmImasc,  &
       pmInmas, pmInupcl, pmInupwl, pmInupbk, pmInlcll, pmInlwll, pmInlblk
+      ! pmInec(nprocs)      :: external cells from all processors
+      ! pmIdisec(nprocs)    :: = nums2displs(pmInec)
+      ! pmInew(nprocs)      :: external wellbores from all processor
+      ! pmInsdc(nprocs)      :: the sendout cells no. to all processors
+      ! pmIdisdc(nprocs)     :: the displace from sendbuf to all processors
+      ! pmImasc(nprocs)         :: the displace from scatterbuf of master to all
       ! pmInmas(6*nprocs), includes the following parts
       ! pmInupcl(nprocs)        :: internal cells
       ! pmInupwl(nprocs)        :: internal wells
@@ -126,14 +132,60 @@
       !--------------------------------------------------------------------
       integer                                       :: szIloc, ofIloc
       integer, dimension(:), allocatable, target    :: dpIloc
-      integer, dimension(:), pointer                :: ibgid, icgid, iwgid
+      integer, dimension(:), pointer                :: ibgid, icgid, iwgid,  &
+      icextgid
       ! ibgid, block natural order
       ! icgid, cell natural order
+      !     * icextgid, external cells natural index
       ! iwgid, well natural order
-      
+      integer                                       :: szIsend, ofIsend
+      integer, dimension(:), allocatable, target    :: dpIsend
+      integer                                       :: nsdcll, nscmast
+      integer, dimension(:), pointer                :: icsdcgid, icsdclid,   &
+      iscmasgid
+      ! icsdcgid(:), all2all: sendout cells natural index. 
+      ! Note: sendout cells number .ge. the border cells number, since a border 
+      ! cell could be an external cell of several subdecks. 
+      ! Sendout cells number is got after processors communicates with each other
+      ! iscmasgid(:), scatter/gather (master) sendout cells natural index
+      ! Notes: gather the global (natural) index from each processor, since the
+      ! scatter/gather buffer requires the memory is contiguous for each
+      ! processor. This array can be used to assemble the sendout buffer.
       
       contains
+      elemental integer function cg2lid(g)
+      integer, intent(in)           :: g
+      call cg2lid_s(g, cg2lid)
+      end function cg2lid
+      elemental subroutine cg2lid_s(g,l)
+      integer, intent(in)           :: g
+      integer, intent(out)          :: l
+      l = iclcid(g)
+      end subroutine cg2lid_s
+! allocate memory for sendout cells
+      subroutine pmpi_init_comm
+      nsdcll = sum(pmInsdc)
+      nscmast = sum(pmInupcl)
+      szIsend = 2*nsdcll + nscmast
+
+      call palloc_i(dpIsend, szIsend, stErrs(17))
+      call setptr_i(dpIsend, szIsend, ofIsend, icsdcgid, nsdcll)
+      call setptr_i(dpIsend, szIsend, ofIsend, icsdclid, nsdcll)
+      if(rank == MASTER) then
+          call setptr_i(dpIsend, szIsend, ofIsend, iscmasgid, nscmast)
+      else
+          call assoptr_i(stIgvs, szIdp, 0, iscmasgid, nscmast)
+      endif
+      end subroutine pmpi_init_comm
+! local cells|wells are relabeled by inner/border/external sequence, the
+! global (natural order) are stored, and also the whole domain is set the
+! new local index, 0 if the cell/well is not in current subdeck
+!   * iclcid, icgid
 ! set up the all2all index
+! cells:
+!   * pmInec, external cells number from all subdecks
+!   * pmIdisec, displacement of external cells for all subdecks, since the
+!   external cells from different subdecks are different.
       subroutine set_exchange_index
       use stmgeomet, only : set_locid, set_numdisp_extofadjdeck
       ! order the local vertex
@@ -439,6 +491,7 @@
       call palloc_i(dpIloc, szIloc, stErrs(15))
       call assoptr_i(dpIloc, szIloc, ofIloc, ibgid, Nlnbls)
       call setptr_i(dpIloc, szIloc, ofIloc, icgid, Nlncs)
+      icextgid      => icgid(Nlcint+1 : Nlncs)
       call setptr_i(dpIloc, szIloc, ofIloc, iwgid, Nlnwls)
 
       end subroutine datpol_init_vect_loc
@@ -446,22 +499,18 @@
       subroutine pmpi_init_vect
       !if master processor
       if(rank /= MASTER) then
-          pmnics = 4*nprocs
-          call palloc_i(pmIcsv, pmnIcs, stErrs(13))
-          call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInec, nprocs)
-          call setptr_i(pmIcsv, pmnIcs, pmofIc, pmIdisec, nprocs)
-          call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInew, nprocs)
-          call setptr_i(pmIcsv, pmnIcs, pmofIc, pmIdisew, nprocs)
-        
           ! must associate 'pmInmas' with a memory, otherwise, the following
           ! subroutine pmpi_master_collect_i, will has an dummy parameter
           ! undefine. 
           ! NOTE: here associate it with an arbitrary memory. Assuming it will
           ! not be read and written on NON-MASTER processor
           call assoptr_i(stIgvs, szIdp, 0, pmInmas, 6*nprocs)
-          return
+          call assoptr_i(stIgvs, szIdp, 0, pmImasc, nprocs)
+          
+          pmnics = nprocs * 6
+      else
+          pmnIcs = nprocs * 13
       endif
-      pmnIcs = nprocs * 10
       call palloc_i( pmIcsv, pmnIcs, stErrs(13))
       
       call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInec, nprocs)
@@ -469,22 +518,26 @@
       call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInew, nprocs)
       call setptr_i(pmIcsv, pmnIcs, pmofIc, pmIdisew, nprocs)
 
-      call assoptr_i( pmIcsv,  pmnIcs, pmofIc, pmInmas, 6*nprocs)
-      call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInupcl, nprocs)
-      call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInupwl, nprocs)
-      call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInupbk, nprocs)
+      call setptr_i(pmIcsv, pmnIcs, pmofIc, pmInsdc, nprocs)
+      call setptr_i(pmIcsv, pmnIcs, pmofIc, pmIdisdc, nprocs)
 
-      call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInlcll, nprocs)
-      call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInlwll, nprocs)
-      call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInlblk, nprocs)
+      if(rank == MASTER) then
+          call assoptr_i( pmIcsv,  pmnIcs, pmofIc, pmInmas, 6*nprocs)
+          call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInupcl, nprocs)
+          call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInupwl, nprocs)
+          call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInupbk, nprocs)
 
+          call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInlcll, nprocs)
+          call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInlwll, nprocs)
+          call setptr_i( pmIcsv, pmnIcs, pmofIc, pmInlblk, nprocs)
+
+          call setptr_i( pmIcsv, pmnIcs, pmofIc, pmImasc, nprocs)
+      endif
       end subroutine pmpi_init_vect
 ! PURPOSE:
 ! de-associate the pointers
 ! release the memory
       subroutine datpol_free
-
-      call pmpi_free
       NULLIFY(iblcid, iclcid, iwlcid)
 
       NULLIFY(ictind, icsecd, icgcat, icdist, iccatl)
@@ -504,26 +557,29 @@
       deallocate(stDgvs, STAT = stErrs(11))
       deallocate(stIgvs, STAT = stErrs(12))
 
+      call pmpi_free
+
       call datpol_free_loc
       end subroutine datpol_free
 ! PURPOSE:
 ! mpi related memo.
       subroutine pmpi_free
-      if(rank /= MASTER) then
-          NULLIFY(pmInec, pmIdisec, pmInew, pmIdisew)
-          NULLIFY(pmInmas)
-          
-          deallocate(dpIloc, STAT=stErrs(16))
-          return
+      if(rank == MASTER) then
+          NULLIFY(pmInlcll, pmInlwll, pmInlblk)
+          NULLIFY(pmInupcl, pmInupwl, pmInupbk)
       endif
+      NULLIFY(pmInmas, iscmasgid)
       NULLIFY(pmInec, pmIdisec, pmInew, pmIdisew)
+      NULLIFY(pmInsdc, pmIdisdc, pmImasc)
 
-      NULLIFY(pmInmas, pmInlcll, pmInlwll, pmInlblk)
-      NULLIFY(pmInupcl, pmInupwl, pmInupbk)
       deallocate(pmIcsv, STAT = stErrs(14))
+
+      NULLIFY(icsdcgid, icsdclid)
+      deallocate(dpIsend, STAT=stErrs(18))
       end subroutine pmpi_free
+! release memory for local properties
       subroutine datpol_free_loc
-      NULLIFY(ibgid, icgid, iwgid)
+      NULLIFY(ibgid, icgid, icextgid, iwgid)
       deallocate(dpIloc, STAT=stErrs(16))
       end subroutine datpol_free_loc
 ! count the maximum columns no. for CSR matrix
