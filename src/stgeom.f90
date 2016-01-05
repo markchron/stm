@@ -562,6 +562,91 @@
       real(STDD), intent(out)           :: area
       area = length * width
       end subroutine set_area
+! calculate the center of the grid cell (Cartesian)
+! ni = NX, nj = NY, nk = NZ
+      subroutine set_center(ni, nj, nk, step, d, center)
+      integer, intent(in)                               :: ni,nj,nk
+      real(STDD), dimension(ni,nj,nk), intent(in)       :: step
+      integer, intent(in)                               :: d
+      real(STDD), dimension(ni,nj,nk), intent(out)      :: center
+
+      real(STDD), dimension(ni*nj*nk)                   :: temp
+      real(STDD), dimension(:), allocatable             :: dstep, dcet
+      integer :: ndim(3), adim(3)
+      ndim       = (/ni,nj,nk/)
+      adim       = CSHIFT( ndim, (d-1) )
+      ! d=1, adim = (NX,NY,NZ)
+      !  =2, adim = (NY,NZ,NX)
+      !  =3, adim = (NZ,NX,NY)
+      ! ref(nr) = ref(ndim(2), ndim(3)) 
+      allocate( dstep(ndim(d)), dcet(ndim(d)) )
+
+      select case (d)
+      case (1)
+          dstep = step( :, 1, 1)
+      case (2)
+          dstep = step( 1, :, 1)
+      case (3)
+          dstep = step( 1, 1, :)
+      end select
+
+      call step2center_d(ndim(d), dstep, dcet)      
+      call vector2array_d(d, ndim(d), dcet, adim(2), adim(3), temp)
+      center = RESHAPE(temp, SHAPE(center))
+      deallocate(dstep, dcet)
+      end subroutine set_center
+      subroutine set_center_htop(ni, nj, nk, step, ref, center)
+      integer, intent(in)                               :: ni,nj,nk
+      real(STDD), dimension(ni,nj,nk), intent(in)       :: step
+      real(STDD), dimension(ni,nj), intent(in)          :: ref
+      real(STDD), dimension(ni,nj,nk), intent(out)      :: center
+      integer :: i,j
+      call set_center(ni,nj,nk,step, 3, center)
+      forall(i =1:ni, j=1:nj)
+        center(i,j,:) = center(i,j,:) + ref(i,j)
+      end forall
+      end subroutine set_center_htop
+! calculate the cell center with cells dimensional step 
+      subroutine step2center_d(nd, step, center)
+      integer, intent(in)                               :: nd
+      real(STDD), dimension(nd), intent(in)             :: step
+      real(STDD), dimension(nd), intent(out)            :: center
+      real(STDD), dimension(nd) :: disp
+      call nums2displs_d(nd, step, disp)
+      center = disp + 0.5 * step
+      end subroutine step2center_d
+! expands vector to be array, ivar|jvar|kvar
+! input:
+! if d=1, ni = NX, nj=NY, nk=NZ, 
+! if d=2, ni = NY, nj=NZ, nk=NX, 
+! if d=3, ni = NZ, nj=NX, nk=NY, 
+      subroutine vector2array_d(d, ni, vect, nj, nk, arr)
+      integer, intent(in)                               :: d
+      integer, intent(in)                               :: ni, nj, nk
+      real(STDD), dimension(ni), intent(in)             :: vect
+      real(STDD), dimension(ni*nj*nk), intent(out)      :: arr
+
+      integer :: ndim(3), d1, d2
+      real(STDD), dimension(:,:,:), allocatable     :: temp
+      ndim = CSHIFT( (/ni,nj,nk/), (4-d) )
+      allocate( temp(ndim(1), ndim(2), ndim(3)) )
+      select case (d)
+        case (1) ! ivar
+            forall(d1 =1: ndim(2), d2=1: ndim(3) )
+                temp(:,d1,d2) = vect(:)
+            end forall
+        case (2) ! jvar
+            forall(d1 = 1:ndim(1), d2=1:ndim(3))
+                temp(d1, :, d2) = vect(:)
+            end forall
+        case (3) ! kvar
+            forall (d1=1: ndim(1), d2=1:ndim(2))
+                temp(d1, d2, :) = vect(:)
+            end forall
+      end select
+      arr = RESHAPE(temp, (/ni*nj*nk/) )
+      deallocate(temp)
+      end subroutine vector2array_d
 ! PURPOSE:
 ! combine the connection lists between grid cells, and between wellbore and
 ! perforated layers into a total CSR-graph 

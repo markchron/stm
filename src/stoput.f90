@@ -81,6 +81,10 @@
 	  call dprt_arr(dcdz, Ngcll, "cell steps along Z:")
 	  call dprt_arr(dchtop, Nxyplane, "cell top depth:")
 
+      call dprt_arr(dcenterx, Ngcll, "cell x coordinate:")
+      call dprt_arr(dcentery, Ngcll, "cell Y coordinate:")
+      call dprt_arr(dcenterz, Ngcll, "cell Z coordinate:")
+
 	  call dprt_arr(dcpor, Ngcll, "Porosity:")
 	  call dprt_arr(dcpermi, Ngcll, "Permeability I (mD)")
 	  call dprt_arr(dcpermj, Ngcll, "Permeability J:")

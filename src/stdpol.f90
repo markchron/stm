@@ -91,6 +91,7 @@
       real(STDD), dimension(:), allocatable, target :: stDgvs
 	  real(STDD), dimension(:), pointer             :: dcdx, dcdy, dcdz, ds3d, &
       dcareai, dcareaj, dcareak, area3d, dcpor, dcpermi, dcpermj, dcpermk, perm3d, &
+      dcenterx, dcentery, dcenterz, &
       detrans, dethermtrs, & 
       dwllrad, dwllgeof, dwllfrac, &
       dlylenfr, dlyskin, dlywitrs, dlywitherm, &
@@ -297,7 +298,7 @@
       call setptr_i(stIgvs, szIdp, ofstIdp, iclcid, Ngcll)
       call setptr_i(stIgvs, szIdp, ofstIdp, iwlcid, Nwidx)
 
-      szDdp = Ngcll * 10            &
+      szDdp = Ngcll * 13            &
       + Nwidx * 3                   &
       + Nlyid * 4                   &
       + Nxyplane + Nevents          &
@@ -313,6 +314,11 @@
       call setptr_d(stDgvs, szDdp, ofstDp, dcareai, Ngcll)
       call setptr_d(stDgvs, szDdp, ofstDp, dcareaj, Ngcll)
       call setptr_d(stDgvs, szDdp, ofstDp, dcareak, Ngcll)
+
+      call setptr_d(stDgvs, szDdp, ofstDp, dcenterx, Ngcll)
+      call setptr_d(stDgvs, szDdp, ofstDp, dcentery, Ngcll)
+      call setptr_d(stDgvs, szDdp, ofstDp, dcenterz, Ngcll)
+      
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpor, Ngcll)
       call assoptr_d(stDgvs, szDdp, ofstDp, perm3d, 3*Ngcll)
 	  call setptr_d(stDgvs, szDdp, ofstDp, dcpermi, Ngcll)
@@ -348,11 +354,15 @@
 !      * area of each cell perpendicular three directions
 !      * grid cell location, BITWISE info. 
       subroutine set_geometry
-      use stmgeomet, only : set_area, set_clls_gcate
+      use stmgeomet, only : set_area, set_center, set_center_htop, set_clls_gcate
       ! area
       call set_area(dcdy, dcdz, dcareai)
       call set_area(dcdx, dcdz, dcareaj)
       call set_area(dcdx, dcdy, dcareak)
+      ! cell center 
+      call set_center(Nxd, Nyd, Nzd, dcdx, 1, dcenterx) 
+      call set_center(Nxd, Nyd, Nzd, dcdy, 2, dcentery)
+      call set_center_htop(Nxd, Nyd, Nzd, dcdz, dchtop, dcenterz)
       ! location info.
       call set_clls_gcate(Nxd, Nyd, Nzd, icgcat)
       end subroutine set_geometry
@@ -548,6 +558,7 @@
 
       NULLIFY(dcdx, dcdy, dcdz, ds3d)
       NULLIFY(dcareai, dcareaj, dcareak, area3d)
+      NULLIFY(dcenterx, dcentery, dcenterz)
       NULLIFY(dcpor, dcpermi, dcpermj, dcpermk, perm3d)
       NULLIFY(detrans, dethermtrs)
       NULLIFY(dwllrad, dwllgeof, dwllfrac)
